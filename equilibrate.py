@@ -12,8 +12,8 @@ cutoff = 10.0 * angstroms
 report_interval = 5000      # Steps between output reports
 
 # length of each stage
-heat_time      = 7  * nanoseconds
-nvt_time       = 3  * nanoseconds
+heat_time      = 3  * nanoseconds
+nvt_time       = 2  * nanoseconds
 npt_restr_time = 15 * nanoseconds
 npt_time       = 5  * nanoseconds
 
