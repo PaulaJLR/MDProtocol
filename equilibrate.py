@@ -168,10 +168,64 @@ def save_rst7(top_name, out_crd_name):
     amber_topology.save(out_crd_name, overwrite=True)
 
 
+# The class can have any name but it must subclass MinimizationReporter.
+class MyMinimizationReporter(MinimizationReporter):
+
+    # within the class you can declare variables that persist throughout the
+    # minimization
+
+    energies = [] # array to record progress
+
+    # you must override the report method and it must have this signature.
+    def report(self, iteration, x, grad, args):
+        '''
+        the report method is called every iteration of the minimization.
+
+        Args:
+            iteration (int): The index of the current iteration. This refers
+                             to the current call to the L-BFGS optimizer.
+                             Each time the minimizer increases the restraint strength,
+                             the iteration index is reset to 0.
+
+            x (array-like): The current particle positions in flattened order:
+                            the three coordinates of the first particle,
+                            then the three coordinates of the second particle, etc.
+
+            grad (array-like): The current gradient of the objective function
+                               (potential energy plus restraint energy) with
+                               respect to the particle coordinates, in flattened order.
+
+            args (dict): Additional statistics described above about the current state of minimization.
+                         In particular:
+                         “system energy”: the current potential energy of the system
+                         “restraint energy”: the energy of the harmonic restraints
+                         “restraint strength”: the force constant of the restraints (in kJ/mol/nm^2)
+                         “max constraint error”: the maximum relative error in the length of any constraint
+
+        Returns:
+            bool : Specify if minimization should be stopped.
+        '''
+
+        # Within the report method you write the code you want to be executed at
+        # each iteration of the minimization.
+        # In this example we get the current energy, print it to the screen, and save it to an array.
+
+        current_energy = args['system energy']
+
+        self.energies.append(current_energy)
+
+        # The report method must return a bool specifying if minimization should be stopped.
+        # You can use this functionality for early termination.
+        return False
+
+
 def minimize(minim_name):
 
-    simulation.minimizeEnergy()
+    reporter = MyMinimizationReporter()
+    simulation.minimizeEnergy(reporter=reporter)
     save_rst7(top_name, f'{minim_name}.rst7')
+    with open(f'{minim_name}.dat', 'w+') as minimf:
+        minimf.writelines(str(i)+'\n' for i in reporter.energies)
 
 
 def add_reporters(out_name):
@@ -233,19 +287,16 @@ posres_sc = apply_posres_sc(10)
 
 # minimize
 minimize('minim1')
-save_rst7(top_name, 'minim1.rst7')
 
 # remove posres sc:
 remove_posres(posres_sc[0])
 # minimize
 minimize('minim2')
-save_rst7(top_name, 'minim2.rst7')
 
 # remove posres bb:
 remove_posres(posres_bb[0])
 # minimize
 minimize('minim3')
-save_rst7(top_name, 'minim3.rst7')
 
 
 """
