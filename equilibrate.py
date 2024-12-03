@@ -188,11 +188,11 @@ def add_reporters(out_name):
 
 def heat():
 
-    temps = np.linspace(start_temp._value, end_temp._value, int(nsteps/temp_update))
+    temps = np.linspace(start_temp._value, end_temp._value, nsteps)
     for i in range(len(temps)):
         temp = temps[i]
         integrator.setTemperature(temp * kelvin)
-        simulation.step(temp_update)
+        simulation.step(1)
 
 
 def add_barostat():
