@@ -110,10 +110,10 @@ def apply_posres_sc(weight):
     return(force_index, posres_name, weight)
 
 
-def apply_posres_lig(weight):
+def apply_posres_lig(weight, lig_center_atoms):
     """
-    Apply posres on the ligand
-    = :LIG
+    Apply posres on the ligand, not center
+    = :LIG and not H, and not lig_center_atoms
     """
 
     posres_name = 'k_lig'
@@ -127,7 +127,7 @@ def apply_posres_lig(weight):
     restraint.addPerParticleParameter('z0')
 
     for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
-        if atom.residue.name == 'LIG':
+        if atom.residue.name == 'LIG' and atom.element.symbol != "H" and atom.name not in lig_center_atoms:
             x0, y0, z0 = position
             restraint.addParticle(atom.index, [x0, y0, z0])
 
@@ -138,6 +138,37 @@ def apply_posres_lig(weight):
     simulation.context.reinitialize(preserveState=True)
 
     return(force_index, posres_name, weight)
+
+
+def apply_posres_lig_center(weight, lig_center_atoms):
+    """
+    Apply posres on the ligand's center
+    = :LIG and lig_center_atoms
+    """
+
+    posres_name = 'k_ligc'
+
+    ## pos res heavy atoms solute
+    force = weight * kilocalories_per_mole/angstroms**2
+    restraint = CustomExternalForce(f'{posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
+    restraint.addGlobalParameter(posres_name, force)
+    restraint.addPerParticleParameter('x0')
+    restraint.addPerParticleParameter('y0')
+    restraint.addPerParticleParameter('z0')
+
+    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
+        if atom.residue.name == 'LIG' and atom.name in lig_center_atoms:
+            x0, y0, z0 = position
+            restraint.addParticle(atom.index, [x0, y0, z0])
+
+    # print(f"Number of restrained particles: {restraint.getNumParticles()}")
+    force_index = system.addForce(restraint)
+
+    # Reinitialize the simulation context to update forces
+    simulation.context.reinitialize(preserveState=True)
+
+    return(force_index, posres_name, weight)
+
 
 
 def remove_posres(force_index):
@@ -276,13 +307,20 @@ prep
 """
 
 prep_system(top_name, crd_name)
+lig_center_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
 
 """
 minimize
 """
 
-# posres protein bb and sc:
+# attention to order of adding restraints. each will have a force index,
+# and then be removed by this index. If force a index is 0, and force b is 1,
+# when i remove force a, force be will now be 0. This means that to make my life
+# easier, the last one to be added has to be the first to go. if i am going to be
+# removing them in the order a,b,c, then i need to add them in the order c,b,a.
+posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
 posres_bb = apply_posres_bb(10)
+posres_lig = apply_posres_lig(10, lig_center_atoms)
 posres_sc = apply_posres_sc(10)
 
 # minimize
@@ -290,11 +328,13 @@ minimize('minim1')
 
 # remove posres sc:
 remove_posres(posres_sc[0])
+remove_posres(posres_lig[0])
 # minimize
 minimize('minim2')
 
 # remove posres bb:
 remove_posres(posres_bb[0])
+remove_posres(posres_lig_center[0])
 # minimize
 minimize('minim3')
 
@@ -310,6 +350,8 @@ add_reporters('nvt_heat')
 # posres protein bb at 10 and sc at 5
 posres_bb = apply_posres_bb(10)
 posres_sc = apply_posres_sc(5)
+posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
+posres_lig = apply_posres_lig(5, lig_center_atoms)
 
 nsteps = int(heat_time / dt)
 heat()
@@ -338,9 +380,14 @@ nsteps = int(np.round(npt_restr_time/dt))
 #----- edit here -----#
 # this uses the same weights from nvt
 restraints = [
+    
     #posres name, start time,  end time
     (posres_sc, 0*nanoseconds, npt_restr_time/3),
-    (posres_bb, npt_restr_time/3, npt_restr_time)
+    (posres_bb, npt_restr_time/3, npt_restr_time),
+
+    (posres_lig, 0*nanoseconds, npt_restr_time/3),
+    (posres_lig_center, npt_restr_time/3, npt_restr_time),
+
 ]
 #---------------------#
 
