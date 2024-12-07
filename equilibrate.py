@@ -427,4 +427,4 @@ add_reporters('npt')
 nsteps = int(npt_time / dt)
 simulation.step(nsteps)
 
-save_rst7(top_name, 'npt.rst7')
+save_rst7(top_name, 'npt1.rst7')
