@@ -27,12 +27,14 @@ def calc_rmsds():
     ref = md.load("minim3.rst7", top=top)
 
     bb_ix = traj.topology.select("protein and backbone")
+    ptn_ix = traj.topology.select("protein")
     lig_ix = traj.topology.select("resname LIG")
 
     traj_aln = traj.superpose(ref[0], atom_indices=bb_ix)
 
     data_dict = {
-        'protein_rmsd' : md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=bb_ix), units_in='nanometers', units_out='angstroms'),
+        'bb_rmsd' : md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=bb_ix), units_in='nanometers', units_out='angstroms'),
+        'ptn_rmsd'     : md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=ptn_ix), units_in='nanometers', units_out='angstroms'),
         'lig_rmsd'     : md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=lig_ix), units_in='nanometers', units_out='angstroms')
     }
     data = pd.DataFrame.from_dict(data_dict)
