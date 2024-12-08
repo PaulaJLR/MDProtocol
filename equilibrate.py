@@ -205,7 +205,9 @@ class MyMinimizationReporter(MinimizationReporter):
     # within the class you can declare variables that persist throughout the
     # minimization
 
-    energies = [] # array to record progress
+    potential_energies = [] # array to record progress
+    constraint_energies = []
+    constraint_strengths = []
 
     # you must override the report method and it must have this signature.
     def report(self, iteration, x, grad, args):
@@ -241,9 +243,13 @@ class MyMinimizationReporter(MinimizationReporter):
         # each iteration of the minimization.
         # In this example we get the current energy, print it to the screen, and save it to an array.
 
-        current_energy = args['system energy']
+        potential_energy = args['system energy']
+        constraint_energy = args['restraint energy']
+        constraint_strength = args['restraint strength']
 
-        self.energies.append(current_energy)
+        self.potential_energies.append(potential_energy)
+        self.constraint_strengths.append(constraint_strength)
+        self.constraint_energies.append(constraint_energy)
 
         # The report method must return a bool specifying if minimization should be stopped.
         # You can use this functionality for early termination.
@@ -255,8 +261,15 @@ def minimize(minim_name):
     reporter = MyMinimizationReporter()
     simulation.minimizeEnergy(reporter=reporter)
     save_rst7(top_name, f'{minim_name}.rst7')
-    with open(f'{minim_name}.dat', 'w+') as minimf:
-        minimf.writelines(str(i)+'\n' for i in reporter.energies)
+
+    with open(f'{minim_name}.dat', 'a+') as minimf:
+        minimf.write('potential_energy\tconstraint_energy\tconstraint_strength\n')
+        for i in range(len(reporter.potential_energies)):
+            potential_energy = float(reporter.potential_energies[i])
+            constraint_energy = float(reporter.constraint_energies[i])
+            constraint_strength = float(reporter.constraint_strengths[i])
+            
+            minimf.write(f'{potential_energy}\t{constraint_energy}\t{constraint_strength}\n')
 
 
 def add_reporters(out_name):
