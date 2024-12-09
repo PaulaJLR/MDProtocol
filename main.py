@@ -1,33 +1,20 @@
+from config import SimulationConfig, RestraintConfig
+from simulation import Equilibration
+
 import numpy as np
 from openmm.app import *
 from openmm import *
 from openmm.unit import *
 import parmed as pmd
 
-platform = Platform.getPlatformByName('CUDA')
+simconf = SimulationConfig(
+    lig_center_atoms=['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
+)
+restrconf = RestraintConfig()
 
-dt = 0.002 * picoseconds   # Time step
-tau_t = 1.0 * picoseconds  # Thermostat time constant (tautp)
-cutoff = 10.0 * angstroms
-report_interval = 5000      # Steps between output reports
+simulation = Equilibration(simconf)
 
-# length of each stage
-heat_time      = 3  * nanoseconds
-nvt_time       = 2  * nanoseconds
-npt_restr_time = 15 * nanoseconds
-npt_time       = 5  * nanoseconds
-
-# temperature settings for heating
-start_temp = 100 * kelvin
-end_temp = 300 * kelvin
-
-top_name = 'complex.prmtop'
-crd_name = 'complex.rst7'
-
-####
-total_steps = (heat_time + nvt_time + npt_restr_time + npt_time) / dt
-####
-
+simulation.restraints.apply_restraints()
 
 def prep_system(top_name, crd_name):
 
