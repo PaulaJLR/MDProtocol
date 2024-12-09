@@ -4,7 +4,7 @@ from openmm import *
 from openmm.unit import *
 import parmed as pmd
 
-platform = Platform.getPlatformByName('CUDA')
+# platform = Platform.getPlatformByName('CUDA')
 
 dt = 0.002 * picoseconds   # Time step
 tau_t = 1.0 * picoseconds  # Thermostat time constant (tautp)
@@ -315,129 +315,131 @@ def get_weight_list(restraint_wt, start_time, stop_time):
     return([*stage1, *stage2, *stage3])
 
 
-"""
-prep
-"""
-
-prep_system(top_name, crd_name)
-lig_center_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
-
-"""
-minimize
-"""
-
-# attention to order of adding restraints. each will have a force index,
-# and then be removed by this index. If force a index is 0, and force b is 1,
-# when i remove force a, force be will now be 0. This means that to make my life
-# easier, the last one to be added has to be the first to go. if i am going to be
-# removing them in the order a,b,c, then i need to add them in the order c,b,a.
-posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
-posres_bb = apply_posres_bb(10)
-posres_lig = apply_posres_lig(10, lig_center_atoms)
-posres_sc = apply_posres_sc(10)
-
-# minimize
-minimize('minim1')
-
-# remove posres sc:
-remove_posres(posres_sc[0])
-remove_posres(posres_lig[0])
-# minimize
-minimize('minim2')
-
-# remove posres bb:
-remove_posres(posres_bb[0])
-remove_posres(posres_lig_center[0])
-# minimize
-minimize('minim3')
-
-
-"""
-nvt
-"""
-
-### heating nvt
-# Add reporters to output data
-add_reporters('nvt_heat')
-
-# posres protein bb at 10 and sc at 5
-posres_bb = apply_posres_bb(10)
-posres_sc = apply_posres_sc(5)
-posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
-posres_lig = apply_posres_lig(5, lig_center_atoms)
-
-nsteps = int(heat_time / dt)
-heat()
-
-save_rst7(top_name, 'nvt_heat.rst7')
-
-
-### nvt at temp
-add_reporters('nvt')
-
-nsteps = int(nvt_time / dt)
-simulation.step(nsteps)
-
-save_rst7(top_name, 'nvt.rst7')
-
-
-"""
-npt - reduce posres
-"""
-
-add_barostat()
-add_reporters('npt_posres')
-
-nsteps = int(np.round(npt_restr_time/dt))
-
-#----- edit here -----#
-# this uses the same weights from nvt
-restraints = [
+if __name__ == "__main__":
     
-    #posres name, start time,  end time
-    (posres_sc, 0*nanoseconds, npt_restr_time/3),
-    (posres_bb, npt_restr_time/3, npt_restr_time),
+    """
+    prep
+    """
 
-    (posres_lig, 0*nanoseconds, npt_restr_time/3),
-    (posres_lig_center, npt_restr_time/3, npt_restr_time),
+    prep_system(top_name, crd_name)
+    lig_center_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
 
-]
-#---------------------#
+    """
+    minimize
+    """
 
-wt_lists = []
+    # attention to order of adding restraints. each will have a force index,
+    # and then be removed by this index. If force a index is 0, and force b is 1,
+    # when i remove force a, force be will now be 0. This means that to make my life
+    # easier, the last one to be added has to be the first to go. if i am going to be
+    # removing them in the order a,b,c, then i need to add them in the order c,b,a.
+    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
+    posres_bb = apply_posres_bb(10)
+    posres_lig = apply_posres_lig(10, lig_center_atoms)
+    posres_sc = apply_posres_sc(10)
 
-for restr in restraints:
+    # minimize
+    minimize('minim1')
 
-    restraint, start_time, stop_time = restr
-    force_index, posres_name, weight = restraint
+    # remove posres sc:
+    remove_posres(posres_sc[0])
+    remove_posres(posres_lig[0])
+    # minimize
+    minimize('minim2')
 
-    wt_list = get_weight_list(weight, start_time, stop_time)
-    wt_lists.append(wt_list)
-
-
-for i in range(nsteps):
-
-    for j in range(len(restraints)):
-
-        restraint, start_time, stop_time = restraints[j]
-        force_index, posres_name, weight_0 = restraint
-        weight = wt_lists[j][i]
-
-        simulation.context.setParameter(posres_name, weight * kilocalories_per_mole/angstroms**2)
-
-    simulation.step(1)
-
-save_rst7(top_name, 'npt_posres.rst7')
+    # remove posres bb:
+    remove_posres(posres_bb[0])
+    remove_posres(posres_lig_center[0])
+    # minimize
+    minimize('minim3')
 
 
-"""
-npt - no posres
-"""
+    """
+    nvt
+    """
 
-add_reporters('npt')
+    ### heating nvt
+    # Add reporters to output data
+    add_reporters('nvt_heat')
 
-# no need to remove the restraints since they were brought to 0 in the prev step
-nsteps = int(npt_time / dt)
-simulation.step(nsteps)
+    # posres protein bb at 10 and sc at 5
+    posres_bb = apply_posres_bb(10)
+    posres_sc = apply_posres_sc(5)
+    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
+    posres_lig = apply_posres_lig(5, lig_center_atoms)
 
-save_rst7(top_name, 'npt1.rst7')
+    nsteps = int(heat_time / dt)
+    heat()
+
+    save_rst7(top_name, 'nvt_heat.rst7')
+
+
+    ### nvt at temp
+    add_reporters('nvt')
+
+    nsteps = int(nvt_time / dt)
+    simulation.step(nsteps)
+
+    save_rst7(top_name, 'nvt.rst7')
+
+
+    """
+    npt - reduce posres
+    """
+
+    add_barostat()
+    add_reporters('npt_posres')
+
+    nsteps = int(np.round(npt_restr_time/dt))
+
+    #----- edit here -----#
+    # this uses the same weights from nvt
+    restraints = [
+        
+        #posres name, start time,  end time
+        (posres_sc, 0*nanoseconds, npt_restr_time/3),
+        (posres_bb, npt_restr_time/3, npt_restr_time),
+
+        (posres_lig, 0*nanoseconds, npt_restr_time/3),
+        (posres_lig_center, npt_restr_time/3, npt_restr_time),
+
+    ]
+    #---------------------#
+
+    wt_lists = []
+
+    for restr in restraints:
+
+        restraint, start_time, stop_time = restr
+        force_index, posres_name, weight = restraint
+
+        wt_list = get_weight_list(weight, start_time, stop_time)
+        wt_lists.append(wt_list)
+
+
+    for i in range(nsteps):
+
+        for j in range(len(restraints)):
+
+            restraint, start_time, stop_time = restraints[j]
+            force_index, posres_name, weight_0 = restraint
+            weight = wt_lists[j][i]
+
+            simulation.context.setParameter(posres_name, weight * kilocalories_per_mole/angstroms**2)
+
+        simulation.step(1)
+
+    save_rst7(top_name, 'npt_posres.rst7')
+
+
+    """
+    npt - no posres
+    """
+
+    add_reporters('npt')
+
+    # no need to remove the restraints since they were brought to 0 in the prev step
+    nsteps = int(npt_time / dt)
+    simulation.step(nsteps)
+
+    save_rst7(top_name, 'npt1.rst7')
