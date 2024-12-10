@@ -303,7 +303,7 @@ def add_barostat():
     simulation.context.reinitialize(preserveState=True)
 
 
-def get_weight_list(restraint_wt, start_time, stop_time, decay_function):
+def get_weight_list(posres_name, restraint_wt, start_time, stop_time, decay_function):
 
     stage1 = [ restraint_wt ] * int(np.round(start_time / dt))
 
@@ -313,9 +313,9 @@ def get_weight_list(restraint_wt, start_time, stop_time, decay_function):
 
     stage3 = [0.0] * int( np.round(npt_restr_time/dt - stop_time/dt) )
 
-    with open('restr_weights.txt', 'a+') as rstfile:
-        rstfile.writelines(str(i)+'\n' for i in [*stage1, *stage2, *stage3])
-        rstfile.write('===========================')
+    with open('restr_weights.csv', 'a+') as rstfile:
+        rstfile.write('weight,name\n')
+        rstfile.writelines(f'{str(i)},{posres_name}\n' for i in [*stage1, *stage2, *stage3])
     return([*stage1, *stage2, *stage3])
 
 
@@ -444,7 +444,7 @@ if __name__ == "__main__":
         restraint, start_time, stop_time = restr
         force_index, posres_name, weight = restraint
 
-        wt_list = get_weight_list(weight, start_time, stop_time, k0=None, decay_function=exp_decay)
+        wt_list = get_weight_list(posres_name, weight, start_time, stop_time, decay_function=exp_decay)
         wt_lists.append(wt_list)
 
 
