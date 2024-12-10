@@ -28,9 +28,4 @@ class Equilibration:
         )
         self.simulation.context.setPositions(self.inpcrd.positions)
 
-        self.restraints = PositionRestraints(
-            self.system,
-            self.prmtop.topology,
-            self.inpcrd.positions,
-            config
-        )
+        self.position_restraints = []
