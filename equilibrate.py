@@ -303,10 +303,14 @@ def add_barostat():
     simulation.context.reinitialize(preserveState=True)
 
 
-def get_weight_list(restraint_wt, start_time, stop_time):
+def get_weight_list(restraint_wt, start_time, stop_time, decay_function):
 
     stage1 = [ restraint_wt ] * int(np.round(start_time / dt))
-    stage2 = np.linspace( restraint_wt, 0.0, int(np.round( stop_time/dt - start_time/dt )) )
+
+    stage2_numsteps = int(np.round( stop_time/dt - start_time/dt ))
+    stage2_x = list(range(stage2_numsteps))
+    stage2 = [decay_function(x=x, a=restraint_wt, j=stage2_numsteps) for x in stage2_x]
+
     stage3 = [0.0] * int( np.round(npt_restr_time/dt - stop_time/dt) )
 
     with open('restr_weights.txt', 'a+') as rstfile:
@@ -316,7 +320,7 @@ def get_weight_list(restraint_wt, start_time, stop_time):
 
 
 if __name__ == "__main__":
-    
+
     """
     prep
     """
@@ -394,6 +398,33 @@ if __name__ == "__main__":
 
     #----- edit here -----#
     # this uses the same weights from nvt
+
+    def exp_decay(a, j, x, k0=5):
+        """
+        This is the exp decay function, but normalized so that y reaches 0.
+        the parameter k0 determines rate of decay.
+        i: the starting restraint weight
+        j: x when y=0, corresponds to the timepoint when restraint should reach 0
+        x: the xvalues, which corresponds to the simulation step numbers
+        """
+        import math
+
+        k = k0/j
+        y = a * ( math.exp(-k * x) - math.exp(-k * j) ) / ( 1 - math.exp(-k * j) )
+        return(y)
+
+
+    def linear_decay(a, j, x, k0=None):
+        """
+        This will make just a line that starts at x=0, y=restr_weight
+        and ends at x=end_time, y=0
+        k0 is a placeholder
+        """
+        
+        y = a * ( -x/j + 1)
+        return(y)
+
+
     restraints = [
         
         #posres name, start time,  end time
@@ -413,7 +444,7 @@ if __name__ == "__main__":
         restraint, start_time, stop_time = restr
         force_index, posres_name, weight = restraint
 
-        wt_list = get_weight_list(weight, start_time, stop_time)
+        wt_list = get_weight_list(weight, start_time, stop_time, k0=None, decay_function=exp_decay)
         wt_lists.append(wt_list)
 
 

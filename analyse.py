@@ -27,8 +27,6 @@ def frame2time(frame_list, dec=2, write_step=5000):
 
 def calc_rmsds():
 
-    
-
     top = "complex.prmtop"
     trajectories = ["nvt_heat.dcd", "nvt.dcd", "npt_posres.dcd", "npt1.dcd"]
 
