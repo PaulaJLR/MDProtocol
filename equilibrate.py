@@ -202,46 +202,17 @@ def save_rst7(top_name, out_crd_name):
 # The class can have any name but it must subclass MinimizationReporter.
 class MyMinimizationReporter(MinimizationReporter):
 
-    # within the class you can declare variables that persist throughout the
-    # minimization
+    # adapted from https://openmm.github.io/openmm-cookbook/dev/notebooks/cookbook/report_minimization.html
 
-    potential_energies = [] # array to record progress
+    potential_energies = []
     constraint_energies = []
     constraint_strengths = []
 
     # you must override the report method and it must have this signature.
-    def report(self, iteration, x, grad, args):
+    def report(self, args):
         '''
         the report method is called every iteration of the minimization.
-
-        Args:
-            iteration (int): The index of the current iteration. This refers
-                             to the current call to the L-BFGS optimizer.
-                             Each time the minimizer increases the restraint strength,
-                             the iteration index is reset to 0.
-
-            x (array-like): The current particle positions in flattened order:
-                            the three coordinates of the first particle,
-                            then the three coordinates of the second particle, etc.
-
-            grad (array-like): The current gradient of the objective function
-                               (potential energy plus restraint energy) with
-                               respect to the particle coordinates, in flattened order.
-
-            args (dict): Additional statistics described above about the current state of minimization.
-                         In particular:
-                         “system energy”: the current potential energy of the system
-                         “restraint energy”: the energy of the harmonic restraints
-                         “restraint strength”: the force constant of the restraints (in kJ/mol/nm^2)
-                         “max constraint error”: the maximum relative error in the length of any constraint
-
-        Returns:
-            bool : Specify if minimization should be stopped.
         '''
-
-        # Within the report method you write the code you want to be executed at
-        # each iteration of the minimization.
-        # In this example we get the current energy, print it to the screen, and save it to an array.
 
         potential_energy = args['system energy']
         constraint_energy = args['restraint energy']
@@ -252,7 +223,6 @@ class MyMinimizationReporter(MinimizationReporter):
         self.constraint_energies.append(constraint_energy)
 
         # The report method must return a bool specifying if minimization should be stopped.
-        # You can use this functionality for early termination.
         return False
 
 
@@ -303,14 +273,54 @@ def add_barostat():
     simulation.context.reinitialize(preserveState=True)
 
 
-def get_weight_list(posres_name, restraint_wt, start_time, stop_time, decay_function):
+def get_weight_list(posres_name, restraint_wt, start_time, stop_time, k0=5, decay_type='exponential'):
+    """
+    For a position restraint and the specified time points in the trajectory, make a list where len(list)==nsteps
+    that determines the restraints weight at every step of the trajectory.
+    Returns the weight list and also writes it to disk.
+    """
 
+    def exp_decay(a, j, k0, x):
+        """
+        This is the exp decay function, but normalized so that y reaches 0.
+        the parameter k0 determines rate of decay, k is derived from it such that j does not influence it.
+        i: the starting restraint weight
+        j: x when y=0, corresponds to the timepoint when restraint should reach 0
+        x: the xvalues, which corresponds to the simulation step numbers
+        """
+        import math
+
+        k = k0/j
+        y = a * ( math.exp(-k * x) - math.exp(-k * j) ) / ( 1 - math.exp(-k * j) )
+        return(y)
+
+    def linear_decay(a, j, x):
+        """
+        This will make just a line that starts at x=0, y=restr_weight
+        and ends at x=end_time, y=0
+        k0 is a placeholder
+        """
+        
+        y = a * ( -x/j + 1)
+        return(y)
+
+    # stage 1
     stage1 = [ restraint_wt ] * int(np.round(start_time / dt))
 
+    # stage 2
     stage2_numsteps = int(np.round( stop_time/dt - start_time/dt ))
     stage2_x = list(range(stage2_numsteps))
-    stage2 = [decay_function(x=x, a=restraint_wt, j=stage2_numsteps) for x in stage2_x]
 
+    line_params = [restraint_wt, stage2_numsteps]
+    if decay_type == 'linear':
+        decay_function = linear_decay
+    elif decay_type == 'exponential':
+        decay_function = exp_decay
+        line_params.append(k0)
+
+    stage2 = [decay_function(*line_params, x) for x in stage2_x]
+
+    # stage 3
     stage3 = [0.0] * int( np.round(npt_restr_time/dt - stop_time/dt) )
 
     with open('restr_weights.csv', 'a+') as rstfile:
@@ -399,32 +409,6 @@ if __name__ == "__main__":
     #----- edit here -----#
     # this uses the same weights from nvt
 
-    def exp_decay(a, j, x, k0=5):
-        """
-        This is the exp decay function, but normalized so that y reaches 0.
-        the parameter k0 determines rate of decay.
-        i: the starting restraint weight
-        j: x when y=0, corresponds to the timepoint when restraint should reach 0
-        x: the xvalues, which corresponds to the simulation step numbers
-        """
-        import math
-
-        k = k0/j
-        y = a * ( math.exp(-k * x) - math.exp(-k * j) ) / ( 1 - math.exp(-k * j) )
-        return(y)
-
-
-    def linear_decay(a, j, x, k0=None):
-        """
-        This will make just a line that starts at x=0, y=restr_weight
-        and ends at x=end_time, y=0
-        k0 is a placeholder
-        """
-        
-        y = a * ( -x/j + 1)
-        return(y)
-
-
     restraints = [
         
         #posres name, start time,  end time
@@ -444,7 +428,7 @@ if __name__ == "__main__":
         restraint, start_time, stop_time = restr
         force_index, posres_name, weight = restraint
 
-        wt_list = get_weight_list(posres_name, weight, start_time, stop_time, decay_function=exp_decay)
+        wt_list = get_weight_list(posres_name, weight, start_time, stop_time, decay_type='exponential')
         wt_lists.append(wt_list)
 
 
