@@ -346,7 +346,7 @@ def get_weight_list(posres_name, restraint_wt, start_time, stop_time, k0=5, deca
     # stage 3
     stage3 = [0.0] * int( np.round(npt_restr_time/dt - stop_time/dt) )
 
-    with open('restr_weights.csv', 'a+') as rstfile:
+    with open(f'{posres_name}_weights.csv', 'a+') as rstfile:
         rstfile.write('weight,name\n')
         rstfile.writelines(f'{str(i)},{posres_name}\n' for i in [*stage1, *stage2, *stage3])
     return([*stage1, *stage2, *stage3])
