@@ -70,7 +70,8 @@ def apply_posres_bb(weight, minim):
     if minim:
         positions = inpcrd.positions
     else:
-        positions = simulation.state.getPositions()
+        state = simulation.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
+        positions = state.getPositions()
 
     for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.name in ['C','CA','N']:
@@ -104,7 +105,8 @@ def apply_posres_sc(weight, minim):
     if minim:
         positions = inpcrd.positions
     else:
-        positions = simulation.state.getPositions()
+        state = simulation.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
+        positions = state.getPositions()
 
     for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.element.symbol != "H" and atom.name not in ['C','CA','N']:
@@ -139,7 +141,8 @@ def apply_posres_lig(weight, minim, lig_center_atoms):
     if minim:
         positions = inpcrd.positions
     else:
-        positions = simulation.state.getPositions()
+        state = simulation.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
+        positions = state.getPositions()
 
     for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name == 'LIG' and atom.element.symbol != "H" and atom.name not in lig_center_atoms:
@@ -174,7 +177,8 @@ def apply_posres_lig_center(weight, minim, lig_center_atoms):
     if minim:
         positions = inpcrd.positions
     else:
-        positions = simulation.state.getPositions()
+        state = simulation.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
+        positions = state.getPositions()
 
     for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name == 'LIG' and atom.name in lig_center_atoms:
@@ -228,7 +232,7 @@ class MyMinimizationReporter(MinimizationReporter):
     constraint_strengths = []
 
     # you must override the report method and it must have this signature.
-    def report(self, args):
+    def report(self, iteration, x, grad, args):
         '''
         the report method is called every iteration of the minimization.
         '''
