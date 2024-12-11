@@ -1,5 +1,6 @@
 from config import SimulationConfig, RestraintConfig
 from simulation import Equilibration
+from restraints import PositionRestraints
 
 import numpy as np
 from openmm.app import *
@@ -7,256 +8,48 @@ from openmm import *
 from openmm.unit import *
 import parmed as pmd
 
-simconf = SimulationConfig(
-    lig_center_atoms=['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
-)
+simconf = SimulationConfig()
 restrconf = RestraintConfig()
 
-simulation = Equilibration(simconf)
+"""
+prep system
+"""
+equilibration = Equilibration(simconf)
+
+# add position restraints for minimization
+## protein backbone
+posres_bb = PositionRestraints(equilibration, 'k_bb', restrconf.minim_posres_bb_weight, restrconf.posres_bb_mask)
+## ligand anchor
+posres_anc = PositionRestraints(equilibration, 'k_la', restrconf.minim_posres_lig_anc_weight, restrconf.posres_lig_anc_mask)
+## protein sidechain
+posres_sc = PositionRestraints(equilibration, 'k_sc', restrconf.minim_posres_sc_weight, restrconf.posres_sc_mask)
+## ligand extension
+posres_ext = PositionRestraints(equilibration, 'k_le', restrconf.minim_posres_lig_ext_weight, restrconf.posres_lig_ext_mask)
+# attention to order of adding restraints. each will have a force index,
+# and then be removed by this index. If force a index is 0, and force b is 1,
+# when i remove force a, force be will now be 0. This means that to make my life
+# easier, the last one to be added has to be the first to go. if i am going to be
+# removing them in the order a,b,c, then i need to add them in the order c,b,a.
+
+
+"""
+minimize
+"""
+
+# minimize 1st round
+equilibration.minimize('minim1')
+
+# remove posres sc:
+posres_ext.remove()
+posres_sc.remove()
+# minimize 2nd round
+equilibration.minimize('minim2')
+
+# remove posres bb:
+posres_anc.remove()
+posres_bb.remove()
+equilibration.minimize('minim3')
 
-simulation.restraints.apply_restraints()
-
-def prep_system(top_name, crd_name):
-
-    global system
-    global integrator
-    global simulation
-    global prmtop
-    global inpcrd
-
-    prmtop = AmberPrmtopFile(top_name)
-    inpcrd = AmberInpcrdFile(crd_name)
-
-    system = prmtop.createSystem(
-        nonbondedMethod=PME,
-        nonbondedCutoff=cutoff,
-        constraints=HBonds  # SHAKE constraints on bonds involving hydrogen
-    )
-
-    integrator = NoseHooverIntegrator(start_temp, tau_t, dt)
-    simulation = Simulation(prmtop.topology, system, integrator)
-    simulation.context.setPositions(inpcrd.positions)
-
-
-def apply_posres_bb(weight):
-    """
-    Apply posres on protein backbone
-    = (not water and not ions and not LIG) and (C,CA,N)
-    """
-
-    posres_name = 'k_bb'
-
-    ## pos res heavy atoms solute
-    force = weight * kilocalories_per_mole/angstroms**2
-    restraint = CustomExternalForce(f'{posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
-    restraint.addGlobalParameter(posres_name, force)
-    restraint.addPerParticleParameter('x0')
-    restraint.addPerParticleParameter('y0')
-    restraint.addPerParticleParameter('z0')
-
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
-        if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.name in ['C','CA','N']:
-            x0, y0, z0 = position
-            restraint.addParticle(atom.index, [x0, y0, z0])
-
-    # print(f"Number of restrained particles: {restraint.getNumParticles()}")
-    force_index = system.addForce(restraint)
-
-    # Reinitialize the simulation context to update forces
-    simulation.context.reinitialize(preserveState=True)
-
-    return(force_index, posres_name, weight)
-
-
-def apply_posres_sc(weight):
-    """
-    Apply posres on protein side chain
-    = (not water and not ions and not LIG) and not ('C','CA','N') and not H
-    """
-
-    posres_name = 'k_sc'
-
-    force = weight * kilocalories_per_mole/angstroms**2
-    restraint = CustomExternalForce(f'{posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
-    restraint.addGlobalParameter(posres_name, force)
-    restraint.addPerParticleParameter('x0')
-    restraint.addPerParticleParameter('y0')
-    restraint.addPerParticleParameter('z0')
-
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
-        if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.element.symbol != "H" and atom.name not in ['C','CA','N']:
-            x0, y0, z0 = position
-            restraint.addParticle(atom.index, [x0, y0, z0])
-
-    # print(f"Number of restrained particles: {restraint.getNumParticles()}")
-    force_index = system.addForce(restraint)
-
-    # Reinitialize the simulation context to update forces
-    simulation.context.reinitialize(preserveState=True)
-
-    return(force_index, posres_name, weight)
-
-
-def apply_posres_lig(weight, lig_center_atoms):
-    """
-    Apply posres on the ligand, not center
-    = :LIG and not H, and not lig_center_atoms
-    """
-
-    posres_name = 'k_lig'
-
-    ## pos res heavy atoms solute
-    force = weight * kilocalories_per_mole/angstroms**2
-    restraint = CustomExternalForce(f'{posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
-    restraint.addGlobalParameter(posres_name, force)
-    restraint.addPerParticleParameter('x0')
-    restraint.addPerParticleParameter('y0')
-    restraint.addPerParticleParameter('z0')
-
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
-        if atom.residue.name == 'LIG' and atom.element.symbol != "H" and atom.name not in lig_center_atoms:
-            x0, y0, z0 = position
-            restraint.addParticle(atom.index, [x0, y0, z0])
-
-    # print(f"Number of restrained particles: {restraint.getNumParticles()}")
-    force_index = system.addForce(restraint)
-
-    # Reinitialize the simulation context to update forces
-    simulation.context.reinitialize(preserveState=True)
-
-    return(force_index, posres_name, weight)
-
-
-def apply_posres_lig_center(weight, lig_center_atoms):
-    """
-    Apply posres on the ligand's center
-    = :LIG and lig_center_atoms
-    """
-
-    posres_name = 'k_ligc'
-
-    ## pos res heavy atoms solute
-    force = weight * kilocalories_per_mole/angstroms**2
-    restraint = CustomExternalForce(f'{posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
-    restraint.addGlobalParameter(posres_name, force)
-    restraint.addPerParticleParameter('x0')
-    restraint.addPerParticleParameter('y0')
-    restraint.addPerParticleParameter('z0')
-
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
-        if atom.residue.name == 'LIG' and atom.name in lig_center_atoms:
-            x0, y0, z0 = position
-            restraint.addParticle(atom.index, [x0, y0, z0])
-
-    # print(f"Number of restrained particles: {restraint.getNumParticles()}")
-    force_index = system.addForce(restraint)
-
-    # Reinitialize the simulation context to update forces
-    simulation.context.reinitialize(preserveState=True)
-
-    return(force_index, posres_name, weight)
-
-
-
-def remove_posres(force_index):
-
-    # Remove the restraint force before continuing dynamics
-    system.removeForce(force_index)
-    # Reinitialize the simulation context to update forces
-    simulation.context.reinitialize(preserveState=True)
-
-
-def save_rst7(top_name, out_crd_name):
-    """
-    use parmed to get positions and velocities and save to rst7
-    """
-
-    state = simulation.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-    positions = state.getPositions()
-    velocities = state.getVelocities()
-    box_vectors = state.getPeriodicBoxVectors()
-
-    # from simtk.unit import nanometers, picoseconds, angstroms
-    positions_in_angstroms = positions.value_in_unit(angstroms)
-    velocities_in_angstroms_per_ps = velocities.value_in_unit(angstroms / picoseconds)
-
-    amber_topology = pmd.load_file(top_name)
-    amber_topology.positions = positions
-    amber_topology.velocities = velocities
-    amber_topology.save(out_crd_name, overwrite=True)
-
-
-# The class can have any name but it must subclass MinimizationReporter.
-class MyMinimizationReporter(MinimizationReporter):
-
-    # within the class you can declare variables that persist throughout the
-    # minimization
-
-    potential_energies = [] # array to record progress
-    constraint_energies = []
-    constraint_strengths = []
-
-    # you must override the report method and it must have this signature.
-    def report(self, iteration, x, grad, args):
-        '''
-        the report method is called every iteration of the minimization.
-
-        Args:
-            iteration (int): The index of the current iteration. This refers
-                             to the current call to the L-BFGS optimizer.
-                             Each time the minimizer increases the restraint strength,
-                             the iteration index is reset to 0.
-
-            x (array-like): The current particle positions in flattened order:
-                            the three coordinates of the first particle,
-                            then the three coordinates of the second particle, etc.
-
-            grad (array-like): The current gradient of the objective function
-                               (potential energy plus restraint energy) with
-                               respect to the particle coordinates, in flattened order.
-
-            args (dict): Additional statistics described above about the current state of minimization.
-                         In particular:
-                         “system energy”: the current potential energy of the system
-                         “restraint energy”: the energy of the harmonic restraints
-                         “restraint strength”: the force constant of the restraints (in kJ/mol/nm^2)
-                         “max constraint error”: the maximum relative error in the length of any constraint
-
-        Returns:
-            bool : Specify if minimization should be stopped.
-        '''
-
-        # Within the report method you write the code you want to be executed at
-        # each iteration of the minimization.
-        # In this example we get the current energy, print it to the screen, and save it to an array.
-
-        potential_energy = args['system energy']
-        constraint_energy = args['restraint energy']
-        constraint_strength = args['restraint strength']
-
-        self.potential_energies.append(potential_energy)
-        self.constraint_strengths.append(constraint_strength)
-        self.constraint_energies.append(constraint_energy)
-
-        # The report method must return a bool specifying if minimization should be stopped.
-        # You can use this functionality for early termination.
-        return False
-
-
-def minimize(minim_name):
-
-    reporter = MyMinimizationReporter()
-    simulation.minimizeEnergy(reporter=reporter)
-    save_rst7(top_name, f'{minim_name}.rst7')
-
-    with open(f'{minim_name}.dat', 'a+') as minimf:
-        minimf.write('potential_energy\tconstraint_energy\tconstraint_strength\n')
-        for i in range(len(reporter.potential_energies)):
-            potential_energy = float(reporter.potential_energies[i])
-            constraint_energy = float(reporter.constraint_energies[i])
-            constraint_strength = float(reporter.constraint_strengths[i])
-            
-            minimf.write(f'{potential_energy}\t{constraint_energy}\t{constraint_strength}\n')
 
 
 def add_reporters(out_name):

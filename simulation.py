@@ -1,8 +1,9 @@
 from openmm.app import AmberPrmtopFile, AmberInpcrdFile, Simulation, PME, HBonds
 from openmm import NoseHooverIntegrator
 from config import SimulationConfig
-from restraints import PositionRestraints
-
+import parmed as pmd
+from tools import save_rst7
+from reporters import MyMinimizationReporter
 
 class Equilibration:
 
@@ -29,3 +30,18 @@ class Equilibration:
         self.simulation.context.setPositions(self.inpcrd.positions)
 
         self.position_restraints = []
+
+    def minimize(self, minim_name):
+
+        reporter = MyMinimizationReporter()
+        self.simulation.minimizeEnergy(reporter=reporter)
+        save_rst7(self, f'{minim_name}.rst7')
+
+        with open(f'{minim_name}.dat', 'a+') as minimf:
+            minimf.write('potential_energy\tconstraint_energy\tconstraint_strength\n')
+            for i in range(len(reporter.potential_energies)):
+                potential_energy = float(reporter.potential_energies[i])
+                constraint_energy = float(reporter.constraint_energies[i])
+                constraint_strength = float(reporter.constraint_strengths[i])
+                
+                minimf.write(f'{potential_energy}\t{constraint_energy}\t{constraint_strength}\n')

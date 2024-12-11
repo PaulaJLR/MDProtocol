@@ -1,27 +1,20 @@
 # restraints.py
-from openmm import CustomExternalForce, System
-from openmm.unit import kilocalories_per_mole, angstroms, Quantity
-from typing import Tuple
+from openmm import CustomExternalForce
+from openmm.unit import Quantity
 from simulation import Equilibration
-from config import RestraintConfig
 
 class PositionRestraints:
-    def __init__(self, system:System, topology, positions, restraint_config:RestraintConfig, equilibration:Equilibration, posres_name:str, filter_func:function):
-        self.system = system
-        self.topology = topology
-        self.positions = positions
-        self.restraint_config = restraint_config
+
+    def __init__(self, equilibration:Equilibration, posres_name:str, weight:Quantity, filter_func:function):
+        self.system = self.equilibration.system
         self.equilibration = equilibration
+        self.topology = equilibration.prmtop.topology
+        self.positions = equilibration.simulation.state.getPositions()
 
         self.posres_name = posres_name
         self.filter_func = filter_func
 
-        self.equilibration.position_restraints.append(self)
-
-    def apply_restraints(self, weight:Quantity) -> int:
-        """
-        Applies a position restraint based on the type.
-        """
+    def apply(self, weight:Quantity) -> int:
         
         restraint = CustomExternalForce(f'{self.posres_name}*periodicdistance(x, y, z, x0, y0, z0)^2')
         restraint.addGlobalParameter(self.posres_name, weight)
@@ -37,7 +30,9 @@ class PositionRestraints:
         force_index = self.system.addForce(restraint)
         self.force_index = force_index
 
-        
-    def update_weight(self, weight:Quantity):
+    def remove(self):
+        self.equilibration.system.removeForce(self.force_index)
+        self.equilibration.simulation.context.reinitialize(preserveState=True)
 
+    def update_weight(self, weight:Quantity):
         self.equilibration.simulation.context.setParameter(self.posres_name, weight)
