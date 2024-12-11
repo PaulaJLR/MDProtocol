@@ -10,13 +10,19 @@ def plot_minimizations():
 
     for i in ['minim1', 'minim2', 'minim3']:
 
-        energies = open(i+'.dat', 'r').readlines()
-        energies = [float(i.strip()) for i in energies]
+        data = pd.read_csv(i+'.dat', sep='\t')
+        data = data.astype(float)
         
-        fig = plt.figure(tight_layout=True, figsize=[4.0,3.0], dpi=300)
-        plt.plot(list(range(len(energies))), energies, '-')
+        fig = plt.figure(tight_layout=True, figsize=[4.0,6.0], dpi=300)
+        plt.subplot(211)
+        plt.plot(data.index, data['potential_energy'], '-')
         plt.xlabel('Step')
-        plt.ylabel('System energy (kJ/mol)')
+        plt.ylabel('Potential energy (kJ/mol)')
+        plt.subplot(212)
+        plt.plot(data.index, data['constraint_energy'], '-')
+        plt.xlabel('Step')
+        plt.ylabel('Constraint energy (kJ/mol)')
+        
         plt.savefig(i+'.png')
     
 
@@ -84,6 +90,6 @@ def plot_rmsds():
     plt.savefig('rmsd.png')
 
 
-# plot_minimizations()
+plot_minimizations()
 # calc_rmsds()
-plot_rmsds()
+# plot_rmsds()
