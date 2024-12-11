@@ -366,10 +366,10 @@ if __name__ == "__main__":
     # when i remove force a, force be will now be 0. This means that to make my life
     # easier, the last one to be added has to be the first to go. if i am going to be
     # removing them in the order a,b,c, then i need to add them in the order c,b,a.
-    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms, minim=True)
-    posres_bb = apply_posres_bb(10, minim=True)
-    posres_lig = apply_posres_lig(10, lig_center_atoms, minim=True)
-    posres_sc = apply_posres_sc(10, minim=True)
+    posres_lig_center = apply_posres_lig_center(weight=10, lig_center_atoms=lig_center_atoms, minim=True)
+    posres_bb = apply_posres_bb(weight=10, minim=True)
+    posres_lig = apply_posres_lig(weight=10, lig_center_atoms=lig_center_atoms, minim=True)
+    posres_sc = apply_posres_sc(weight=10, minim=True)
 
     # minimize
     minimize('minim1')
@@ -396,10 +396,10 @@ if __name__ == "__main__":
     add_reporters('nvt_heat')
 
     # posres protein bb at 10 and sc at 5
-    posres_bb = apply_posres_bb(10, minim=False)
-    posres_sc = apply_posres_sc(5, minim=False)
-    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms, minim=False)
-    posres_lig = apply_posres_lig(5, lig_center_atoms, minim=False)
+    posres_bb = apply_posres_bb(weight=10, minim=False)
+    posres_sc = apply_posres_sc(weight=5, minim=False)
+    posres_lig_center = apply_posres_lig_center(weight=10, lig_center_atoms=lig_center_atoms, minim=False)
+    posres_lig = apply_posres_lig(weight=5, lig_center_atoms=lig_center_atoms, minim=False)
 
     nsteps = int(heat_time / dt)
     heat()
