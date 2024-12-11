@@ -51,7 +51,7 @@ def prep_system(top_name, crd_name):
     simulation.context.setPositions(inpcrd.positions)
 
 
-def apply_posres_bb(weight):
+def apply_posres_bb(weight, minim):
     """
     Apply posres on protein backbone
     = (not water and not ions and not LIG) and (C,CA,N)
@@ -67,7 +67,12 @@ def apply_posres_bb(weight):
     restraint.addPerParticleParameter('y0')
     restraint.addPerParticleParameter('z0')
 
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
+    if minim:
+        positions = inpcrd.positions
+    else:
+        positions = simulation.state.getPositions()
+
+    for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.name in ['C','CA','N']:
             x0, y0, z0 = position
             restraint.addParticle(atom.index, [x0, y0, z0])
@@ -81,7 +86,7 @@ def apply_posres_bb(weight):
     return(force_index, posres_name, weight)
 
 
-def apply_posres_sc(weight):
+def apply_posres_sc(weight, minim):
     """
     Apply posres on protein side chain
     = (not water and not ions and not LIG) and not ('C','CA','N') and not H
@@ -96,7 +101,12 @@ def apply_posres_sc(weight):
     restraint.addPerParticleParameter('y0')
     restraint.addPerParticleParameter('z0')
 
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
+    if minim:
+        positions = inpcrd.positions
+    else:
+        positions = simulation.state.getPositions()
+
+    for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG'] and atom.element.symbol != "H" and atom.name not in ['C','CA','N']:
             x0, y0, z0 = position
             restraint.addParticle(atom.index, [x0, y0, z0])
@@ -110,7 +120,7 @@ def apply_posres_sc(weight):
     return(force_index, posres_name, weight)
 
 
-def apply_posres_lig(weight, lig_center_atoms):
+def apply_posres_lig(weight, minim, lig_center_atoms):
     """
     Apply posres on the ligand, not center
     = :LIG and not H, and not lig_center_atoms
@@ -126,7 +136,12 @@ def apply_posres_lig(weight, lig_center_atoms):
     restraint.addPerParticleParameter('y0')
     restraint.addPerParticleParameter('z0')
 
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
+    if minim:
+        positions = inpcrd.positions
+    else:
+        positions = simulation.state.getPositions()
+
+    for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name == 'LIG' and atom.element.symbol != "H" and atom.name not in lig_center_atoms:
             x0, y0, z0 = position
             restraint.addParticle(atom.index, [x0, y0, z0])
@@ -140,7 +155,7 @@ def apply_posres_lig(weight, lig_center_atoms):
     return(force_index, posres_name, weight)
 
 
-def apply_posres_lig_center(weight, lig_center_atoms):
+def apply_posres_lig_center(weight, minim, lig_center_atoms):
     """
     Apply posres on the ligand's center
     = :LIG and lig_center_atoms
@@ -156,7 +171,12 @@ def apply_posres_lig_center(weight, lig_center_atoms):
     restraint.addPerParticleParameter('y0')
     restraint.addPerParticleParameter('z0')
 
-    for atom, position in zip(prmtop.topology.atoms(), inpcrd.positions):
+    if minim:
+        positions = inpcrd.positions
+    else:
+        positions = simulation.state.getPositions()
+
+    for atom, position in zip(prmtop.topology.atoms(), positions):
         if atom.residue.name == 'LIG' and atom.name in lig_center_atoms:
             x0, y0, z0 = position
             restraint.addParticle(atom.index, [x0, y0, z0])
@@ -168,7 +188,6 @@ def apply_posres_lig_center(weight, lig_center_atoms):
     simulation.context.reinitialize(preserveState=True)
 
     return(force_index, posres_name, weight)
-
 
 
 def remove_posres(force_index):
@@ -347,10 +366,10 @@ if __name__ == "__main__":
     # when i remove force a, force be will now be 0. This means that to make my life
     # easier, the last one to be added has to be the first to go. if i am going to be
     # removing them in the order a,b,c, then i need to add them in the order c,b,a.
-    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
-    posres_bb = apply_posres_bb(10)
-    posres_lig = apply_posres_lig(10, lig_center_atoms)
-    posres_sc = apply_posres_sc(10)
+    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms, minim=True)
+    posres_bb = apply_posres_bb(10, minim=True)
+    posres_lig = apply_posres_lig(10, lig_center_atoms, minim=True)
+    posres_sc = apply_posres_sc(10, minim=True)
 
     # minimize
     minimize('minim1')
@@ -377,10 +396,10 @@ if __name__ == "__main__":
     add_reporters('nvt_heat')
 
     # posres protein bb at 10 and sc at 5
-    posres_bb = apply_posres_bb(10)
-    posres_sc = apply_posres_sc(5)
-    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms)
-    posres_lig = apply_posres_lig(5, lig_center_atoms)
+    posres_bb = apply_posres_bb(10, minim=False)
+    posres_sc = apply_posres_sc(5, minim=False)
+    posres_lig_center = apply_posres_lig_center(10, lig_center_atoms, minim=False)
+    posres_lig = apply_posres_lig(5, lig_center_atoms, minim=False)
 
     nsteps = int(heat_time / dt)
     heat()
