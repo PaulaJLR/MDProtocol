@@ -1,5 +1,5 @@
 from openmm import MinimizationReporter
-from openmm.app import StateDataReporter
+from openmm.app import StateDataReporter, CheckpointReporter, DCDReporter
 
 class MyMinimizationReporter(MinimizationReporter):
 
@@ -29,11 +29,11 @@ class MyMinimizationReporter(MinimizationReporter):
 
 def add_reporters(equilibration, config, out_name):
 
-    simulation.reporters.clear()
+    equilibration.simulation.reporters.clear()
 
-    simulation.reporters.append(StateDataReporter(
-        f"{out_name}.log", report_interval, step=True, temperature=True, progress=True,
-        remainingTime=True, speed=True, totalSteps=total_steps, separator='\t'
+    equilibration.simulation.reporters.append(StateDataReporter(
+        f"{out_name}.log", config.report_interval, step=True, temperature=True, progress=True,
+        remainingTime=True, speed=True, totalSteps=config.total_steps, separator='\t'
     ))
-    simulation.reporters.append(DCDReporter(f'{out_name}.dcd', report_interval))  # Trajectory output
-    simulation.reporters.append(CheckpointReporter(f'{out_name}.chk', report_interval))  # Checkpointing
+    equilibration.simulation.reporters.append(DCDReporter(f'{out_name}.dcd', config.report_interval))  # Trajectory output
+    equilibration.simulation.reporters.append(CheckpointReporter(f'{out_name}.chk', config.report_interval))  # Checkpointing

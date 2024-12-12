@@ -1,9 +1,11 @@
+import numpy as np
 from openmm.app import AmberPrmtopFile, AmberInpcrdFile, Simulation, PME, HBonds
 from openmm import NoseHooverIntegrator
+from openmm.unit import kelvin
 from config import SimulationConfig
+from reporters import MyMinimizationReporter, add_reporters
 import parmed as pmd
 from tools import save_rst7
-from reporters import MyMinimizationReporter
 
 class Equilibration:
 
@@ -45,3 +47,57 @@ class Equilibration:
                 constraint_strength = float(reporter.constraint_strengths[i])
                 
                 minimf.write(f'{potential_energy}\t{constraint_energy}\t{constraint_strength}\n')
+
+    def heat(self, config, heat_name):
+
+        add_reporters(self, config, heat_name)
+
+        nsteps = config.heat_time / config.dt
+        temps = np.linspace(config.start_temp.value_in_unit(kelvin), config.end_temp.value_in_unit(kelvin), nsteps)
+        
+        # run
+        for i in range(len(temps)):
+            temp = temps[i]
+            self.integrator.setTemperature(temp * kelvin)
+            self.simulation.step(1)
+
+        save_rst7(self, heat_name)
+    
+
+    def nvt(self, config, nvt_name):
+
+        add_reporters(self, config, nvt_name)
+        nsteps = config.nvt_time / config.dt
+
+        # run
+        self.simulation.step(nsteps)
+
+        save_rst7(self, nvt_name)
+    
+
+    def npt_posres(self, config, npt_posres_name):
+
+        add_reporters(self, config, npt_posres_name)
+        nsteps = config.npt_restr_time / config.dt
+
+        # get weight lists for each restraint
+        for restraint in self.position_restraints:
+            restraint.get_weight_list()
+
+        # run
+        for i in range(nsteps):
+
+            for restraint in self.position_restraints:
+
+                weight = restraint.weight_list[i]
+                restraint.update_weight(weight)
+
+            self.simulation.step(1)
+
+
+    def npt(self, config, npt_name):
+
+        add_reporters(self, config, npt_name)
+        nsteps = config.npt_time / config.dt
+
+        self.simulation.step(nsteps)
