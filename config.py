@@ -61,6 +61,7 @@ class RestraintConfig:
     name:             str      = 'posres_bb'
     start_time:       float    = 5.0
     end_time:         float    = 15.0
+    lig_resname:      str      = None
     lig_anchor_atoms: list     = None
     mask_func:        Callable = None
     decay_func:       Callable = None
