@@ -79,32 +79,29 @@ class RestraintConfig:
         if self.decay_func is None:
             self.decay_func = self.exp_decay
 
-    @staticmethod
-    def posres_bb_mask(atom):
+
+    def posres_bb_mask(self, atom):
         return(
-            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG', 'UNK'] and
+            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.name in ['C','CA','N','O']
         )
 
-    @staticmethod
-    def posres_sc_mask(atom):
+    def posres_sc_mask(self, atom):
         return(
-            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG', 'UNK'] and
+            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.element.symbol != "H" and
             atom.name not in ['C','CA','N','O']
         )
 
-    @staticmethod
-    def posres_liganc_mask(atom, lig_anchor_atoms):
+    def posres_liganc_mask(self, atom, lig_anchor_atoms):
         return(
-            (atom.residue.name == 'LIG' or atom.residue.name == 'UNK') and
+            atom.residue.name == self.lig_resname and
             atom.name in lig_anchor_atoms
         )
     
-    @staticmethod
-    def posres_ligext_mask(atom, lig_anchor_atoms):
+    def posres_ligext_mask(self, atom, lig_anchor_atoms):
         return(
-            (atom.residue.name == 'LIG' or atom.residue.name == 'UNK') and
+            atom.residue.name == self.lig_resname and
             atom.element.symbol != "H" and
             atom.name not in lig_anchor_atoms
         )
