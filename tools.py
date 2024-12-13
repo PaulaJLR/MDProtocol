@@ -16,9 +16,9 @@ def save_rst7(equilibration, out_crd_name):
     amber_topology.save(out_crd_name, overwrite=True)
 
 
-def add_barostat(config, equlibration):
+def add_barostat(config, equilibration):
 
     # Add Monte Carlo barostat for pressure coupling
     barostat = MonteCarloBarostat(config.pressure, config.end_temp)
-    equlibration.system.addForce(barostat)
-    equlibration.simulation.context.reinitialize(preserveState=True)
+    equilibration.system.addForce(barostat)
+    equilibration.simulation.context.reinitialize(preserveState=True)

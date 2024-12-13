@@ -16,8 +16,8 @@ class Equilibration:
         self.inpcrd = AmberInpcrdFile(config.crd_name)
         self.system = self.prmtop.createSystem(
             nonbondedMethod=PME,
-            nonbondedCutoff=config.cutoff,
-            constraints=HBonds
+            nonbondedCutoff=self.config.cutoff,
+            constraints=None
         )
         self.integrator = NoseHooverIntegrator(
             config.start_temp,
@@ -47,6 +47,24 @@ class Equilibration:
                 constraint_strength = float(reporter.constraint_strengths[i])
                 
                 minimf.write(f'{potential_energy}\t{constraint_energy}\t{constraint_strength}\n')
+
+    def apply_hbond_constraints(self):
+
+        prev_state = self.simulation.context.getState(getPositions=True)
+
+        self.system = self.prmtop.createSystem(
+            nonbondedMethod=PME,
+            nonbondedCutoff=self.config.cutoff,
+            constraints=HBonds
+        )
+        self.simulation = Simulation(
+            self.prmtop.topology,
+            self.system,
+            self.integrator
+        )
+        self.simulation.system = self.system
+        self.simulation.context.setPositions(prev_state.getPositions())
+
 
     def heat(self, config, heat_name):
 
@@ -94,6 +112,8 @@ class Equilibration:
 
             self.simulation.step(1)
 
+        save_rst7(self, npt_posres_name)
+
 
     def npt(self, config, npt_name):
 
@@ -101,3 +121,5 @@ class Equilibration:
         nsteps = config.npt_time / config.dt
 
         self.simulation.step(nsteps)
+
+        save_rst7(self, npt_name)

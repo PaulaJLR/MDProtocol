@@ -20,6 +20,8 @@ simconf = SimulationConfig(
     crd_name='complex.rst7'
 )
 
+# TODO make var for ligname
+
 lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
 
 # configure position restraints
@@ -92,6 +94,9 @@ equilibration.minimize('minim3')
 nvt
 """
 
+# start SHAKE
+equilibration.apply_hbond_constraints()
+
 # apply position restraints for simulation
 posres_bb.apply()
 posres_sc.apply()
@@ -108,7 +113,7 @@ equilibration.nvt(simconf, 'nvt')
 npt - reduce posres
 """
 
-add_barostat()
+add_barostat(simconf, equilibration)
 equilibration.npt_posres(simconf, 'npt_posres')
 
 
@@ -116,4 +121,4 @@ equilibration.npt_posres(simconf, 'npt_posres')
 npt - no posres
 """
 
-equilibration.npt(simconf, 'npt_posres')
+equilibration.npt(simconf, 'npt')

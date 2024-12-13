@@ -6,8 +6,8 @@ import math
 @dataclass
 class SimulationConfig:
 
-    top_name:         str      = 'system.prmtop'
-    crd_name:         str      = 'system.rst7'
+    top_name:         str   = 'system.prmtop'
+    crd_name:         str   = 'system.rst7'
 
     dt:               float = 0.002
     tau_t:            float = 1.0
@@ -82,7 +82,7 @@ class RestraintConfig:
     def posres_bb_mask(atom):
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG', 'UNK'] and
-            atom.name in ['C','CA','N']
+            atom.name in ['C','CA','N','O']
         )
 
     @staticmethod
@@ -90,7 +90,7 @@ class RestraintConfig:
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', 'LIG', 'UNK'] and
             atom.element.symbol != "H" and
-            atom.name not in ['C','CA','N']
+            atom.name not in ['C','CA','N','O']
         )
 
     @staticmethod
