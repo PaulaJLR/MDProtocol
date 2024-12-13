@@ -30,7 +30,7 @@ class PositionRestraints:
         restraint.addPerParticleParameter('z0')
 
         for atom, position in zip(self.topology.atoms(), positions):
-            if self.filter_func(atom):
+            if self.config.filter_func(atom):
                 x0, y0, z0 = position
                 restraint.addParticle(atom.index, [x0, y0, z0])
 
