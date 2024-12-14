@@ -63,7 +63,7 @@ class RestraintConfig:
     end_time:         float    = 15.0
     lig_resname:      str      = None
     lig_anchor_atoms: list     = None
-    mask_func:        Callable = None
+    mask_func_name:   str      = None
     decay_func:       Callable = None
     decay_rate:       float    = 5.0
 
@@ -74,19 +74,27 @@ class RestraintConfig:
         self.start_time = self.start_time * nanoseconds
         self.end_time = self.end_time * nanoseconds
 
-        if self.mask_func is None:
-            self.mask_func = self.posres_bb_mask
+        if self.mask_func_name is None:
+            self.mask_func_name = 'posres_bb_mask'
         if self.decay_func is None:
             self.decay_func = self.exp_decay
+        
+        mask_funcs = {
+            'posres_bb_mask':self.posres_bb_mask,
+            'posres_sc_mask':self.posres_sc_mask,
+            'posres_liganc_mask':self.posres_liganc_mask,
+            'posres_ligext_mask':self.posres_ligext_mask
+        }
+        self.mask_func = mask_funcs[self.mask_func_name]
 
 
-    def posres_bb_mask(self, atom):
+    def posres_bb_mask(self, atom, lig_anchor_atoms):
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.name in ['C','CA','N','O']
         )
 
-    def posres_sc_mask(self, atom):
+    def posres_sc_mask(self, atom, lig_anchor_atoms):
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.element.symbol != "H" and

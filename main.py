@@ -17,7 +17,7 @@ configure system
 simconf = SimulationConfig(
     # add here all options that should not be kept default
     top_name='complex.prmtop',
-    crd_name='complex.rst7'
+    crd_name='complex.rst7',
 )
 
 lig_resname = 'LIG'
@@ -26,25 +26,25 @@ lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14
 # configure position restraints
 config_posres_bb = RestraintConfig( # protein backbone
     name      = 'posres_bb',
-    mask_func = RestraintConfig.posres_bb_mask
+    mask_func_name = 'posres_bb_mask'
 )
 config_posres_sc = RestraintConfig( # protein sidechain
     name       = 'posres_sc',
     weight     = 5.0,
-    mask_func  = RestraintConfig.posres_sc_mask,
+    mask_func_name  = 'posres_sc_mask',
     start_time = 0,
     end_time   = simconf.get_value('npt_restr_time') / 3
 )
 config_posres_liganch = RestraintConfig( # ligand anchor
     name        = 'posres_liganc',
-    mask_func   = RestraintConfig.posres_liganc_mask,
+    mask_func_name   = 'posres_liganc_mask',
     lig_resname=lig_resname,
     lig_anchor_atoms=lig_anchor_atoms
 )
 config_posres_ligext = RestraintConfig( # ligand anchor
     name = 'posres_ligext',
     weight = 5.0,
-    mask_func = RestraintConfig.posres_ligext_mask,
+    mask_func_name = 'posres_ligext_mask',
     lig_resname=lig_resname,
     lig_anchor_atoms=lig_anchor_atoms,
     start_time = 0,
@@ -105,9 +105,9 @@ posres_liganc.apply()
 posres_ligext.apply()
 
 # increase temp linearly
-equilibration.heat(simconf, 'nvt_heat')
+# equilibration.heat(simconf, 'nvt_heat')
 # keep nvt at target temperatue
-equilibration.nvt(simconf, 'nvt')
+# equilibration.nvt(simconf, 'nvt')
 
 
 """

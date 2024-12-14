@@ -10,7 +10,7 @@ class MyMinimizationReporter(MinimizationReporter):
     constraint_strengths = []
 
     # you must override the report method and it must have this signature.
-    def report(self, args):
+    def report(self, iteration, x, grad, args):
         '''
         the report method is called every iteration of the minimization.
         '''

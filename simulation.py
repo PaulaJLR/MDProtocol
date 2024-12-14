@@ -20,9 +20,9 @@ class Equilibration:
             constraints=None
         )
         self.integrator = NoseHooverIntegrator(
-            config.start_temp,
-            config.tau_t,
-            config.dt
+            self.config.start_temp,
+            self.config.tau_t,
+            self.config.dt
         )
         self.simulation = Simulation(
             self.prmtop.topology,
@@ -57,6 +57,11 @@ class Equilibration:
             nonbondedCutoff=self.config.cutoff,
             constraints=HBonds
         )
+        self.integrator = NoseHooverIntegrator(
+            self.config.start_temp,
+            self.config.tau_t,
+            self.config.dt
+        )
         self.simulation = Simulation(
             self.prmtop.topology,
             self.system,
@@ -70,7 +75,7 @@ class Equilibration:
 
         add_reporters(self, config, heat_name)
 
-        nsteps = config.heat_time / config.dt
+        nsteps = int(np.round(config.heat_time / config.dt))
         temps = np.linspace(config.start_temp.value_in_unit(kelvin), config.end_temp.value_in_unit(kelvin), nsteps)
         
         # run
@@ -79,24 +84,24 @@ class Equilibration:
             self.integrator.setTemperature(temp * kelvin)
             self.simulation.step(1)
 
-        save_rst7(self, heat_name)
+        save_rst7(self, f'{heat_name}.rst7')
     
 
     def nvt(self, config, nvt_name):
 
         add_reporters(self, config, nvt_name)
-        nsteps = config.nvt_time / config.dt
+        nsteps = int(np.round(config.nvt_time / config.dt))
 
         # run
         self.simulation.step(nsteps)
 
-        save_rst7(self, nvt_name)
+        save_rst7(self, f'{nvt_name}.rst7')
     
 
     def npt_posres(self, config, npt_posres_name):
 
         add_reporters(self, config, npt_posres_name)
-        nsteps = config.npt_restr_time / config.dt
+        nsteps = int(np.round(config.npt_restr_time / config.dt))
 
         # get weight lists for each restraint
         for restraint in self.position_restraints:
@@ -112,14 +117,14 @@ class Equilibration:
 
             self.simulation.step(1)
 
-        save_rst7(self, npt_posres_name)
+        save_rst7(self, f'{npt_posres_name}.rst7')
 
 
     def npt(self, config, npt_name):
 
         add_reporters(self, config, npt_name)
-        nsteps = config.npt_time / config.dt
+        nsteps = int(np.round(config.npt_time / config.dt))
 
         self.simulation.step(nsteps)
 
-        save_rst7(self, npt_name)
+        save_rst7(self, f'{npt_name}.rst7')
