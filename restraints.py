@@ -28,7 +28,7 @@ class PositionRestraints:
         restraint.addPerParticleParameter('z0')
 
         for atom, position in zip(self.equilibration.prmtop.topology.atoms(), positions):
-            if self.config.mask_func(atom, self.config.lig_anchor_atoms):
+            if self.config.mask_func(atom):
                 x0, y0, z0 = position
                 restraint.addParticle(atom.index, [x0, y0, z0])
 

@@ -63,6 +63,7 @@ class RestraintConfig:
     end_time:         float    = 15.0
     lig_resname:      str      = None
     lig_anchor_atoms: list     = None
+    structural_waters:list     = None
     mask_func_name:   str      = None
     decay_func:       Callable = None
     decay_rate:       float    = 5.0
@@ -83,36 +84,45 @@ class RestraintConfig:
             'posres_bb_mask':self.posres_bb_mask,
             'posres_sc_mask':self.posres_sc_mask,
             'posres_liganc_mask':self.posres_liganc_mask,
-            'posres_ligext_mask':self.posres_ligext_mask
+            'posres_ligext_mask':self.posres_ligext_mask,
+            'posres_water_mask':self.posres_water_mask
         }
         self.mask_func = mask_funcs[self.mask_func_name]
 
 
-    def posres_bb_mask(self, atom, lig_anchor_atoms):
+    def posres_bb_mask(self, atom):
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.name in ['C','CA','N','O']
         )
 
-    def posres_sc_mask(self, atom, lig_anchor_atoms):
+    def posres_sc_mask(self, atom):
         return(
             atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
             atom.element.symbol != "H" and
             atom.name not in ['C','CA','N','O']
         )
 
-    def posres_liganc_mask(self, atom, lig_anchor_atoms):
+    def posres_liganc_mask(self, atom):
         return(
             atom.residue.name == self.lig_resname and
-            atom.name in lig_anchor_atoms
+            atom.name in self.lig_anchor_atoms
         )
     
-    def posres_ligext_mask(self, atom, lig_anchor_atoms):
+    def posres_ligext_mask(self, atom):
         return(
             atom.residue.name == self.lig_resname and
             atom.element.symbol != "H" and
-            atom.name not in lig_anchor_atoms
+            atom.name not in self.lig_anchor_atoms
         )
+    
+    def posres_water_mask(self, atom):
+        return(
+            (atom.residue.name == 'WAT' or atom.residue.name == 'HOH') and
+            atom.residue.id in self.structural_waters and
+            atom.element.symbol == 'O'
+        )
+    
     
 
     @staticmethod

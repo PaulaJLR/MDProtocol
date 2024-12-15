@@ -22,6 +22,7 @@ simconf = SimulationConfig(
 
 lig_resname = 'LIG'
 lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
+structural_waters = [163, 164, 165, 166] # residue numbers
 
 # configure position restraints
 config_posres_bb = RestraintConfig( # protein backbone
@@ -50,7 +51,14 @@ config_posres_ligext = RestraintConfig( # ligand anchor
     start_time = 0,
     end_time = simconf.get_value('npt_restr_time') / 3
 )
-
+config_posres_wat = RestraintConfig(
+    name = 'posres_wat',
+    weight = 10.0,
+    mask_func_name = 'posres_water_mask',
+    structural_waters = structural_waters,
+    start_time = simconf.get_value('npt_restr_time') / 3,
+    end_time = simconf.get_value('npt_restr_time')
+)
 
 """
 prep system
@@ -64,13 +72,13 @@ posres_bb = PositionRestraints(equilibration, config_posres_bb)
 posres_sc = PositionRestraints(equilibration, config_posres_sc)
 posres_liganc = PositionRestraints(equilibration, config_posres_liganch)
 posres_ligext = PositionRestraints(equilibration, config_posres_ligext)
-
+posres_waters = PositionRestraints(equilibration, config_posres_wat)
 
 """
 minimize
 """
 
-# apply all restraints
+# apply all restraints except struct waters
 posres_bb.apply(minim=True)
 posres_sc.apply(minim=True)
 posres_liganc.apply(minim=True)
@@ -103,11 +111,12 @@ posres_bb.apply()
 posres_sc.apply()
 posres_liganc.apply()
 posres_ligext.apply()
+posres_waters.apply()
 
 # increase temp linearly
-# equilibration.heat(simconf, 'nvt_heat')
+equilibration.heat(simconf, 'nvt_heat')
 # keep nvt at target temperatue
-# equilibration.nvt(simconf, 'nvt')
+equilibration.nvt(simconf, 'nvt')
 
 
 """
