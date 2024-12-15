@@ -53,7 +53,7 @@ config_posres_ligext = RestraintConfig( # ligand anchor
 )
 config_posres_wat = RestraintConfig(
     name = 'posres_wat',
-    weight = 10.0,
+    weight = 1.0,
     mask_func_name = 'posres_water_mask',
     structural_waters = structural_waters,
     start_time = simconf.get_value('npt_restr_time') / 3,
