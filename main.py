@@ -22,7 +22,7 @@ simconf = SimulationConfig(
 
 lig_resname = 'LIG'
 lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
-structural_waters = [163, 164, 165, 166] # residue numbers
+structural_waters = ['163', '164', '165', '166'] # residue numbers
 
 # configure position restraints
 config_posres_bb = RestraintConfig( # protein backbone
@@ -56,8 +56,8 @@ config_posres_wat = RestraintConfig(
     weight = 1.0,
     mask_func_name = 'posres_water_mask',
     structural_waters = structural_waters,
-    start_time = simconf.get_value('npt_restr_time') / 3,
-    end_time = simconf.get_value('npt_restr_time')
+    start_time = 0,
+    end_time = simconf.get_value('npt_restr_time') / 3
 )
 
 """

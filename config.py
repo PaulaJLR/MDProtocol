@@ -120,7 +120,7 @@ class RestraintConfig:
         return(
             (atom.residue.name == 'WAT' or atom.residue.name == 'HOH') and
             atom.residue.id in self.structural_waters and
-            atom.element.symbol == 'O'
+            atom.name == 'O'
         )
     
     
