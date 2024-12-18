@@ -106,12 +106,9 @@ nvt
 # start SHAKE
 equilibration.apply_hbond_constraints()
 
-# apply position restraints for simulation
-posres_bb.apply()
-posres_sc.apply()
-posres_liganc.apply()
-posres_ligext.apply()
-posres_waters.apply()
+# apply all position restraints for simulation
+for restr in equilibration.position_restraints:
+    restr.apply()
 
 # increase temp linearly
 equilibration.heat(simconf, 'nvt_heat')
@@ -130,5 +127,10 @@ equilibration.npt_posres(simconf, 'npt_posres')
 """
 npt - no posres
 """
+
+# even though restraint weights got to 0, I remove them
+# to avoid unnecessery calculations:
+for restr in equilibration.position_restraints:
+    restr.remove()
 
 equilibration.npt(simconf, 'npt')
