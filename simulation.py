@@ -32,6 +32,9 @@ class Equilibration:
         self.simulation.context.setPositions(self.inpcrd.positions)
 
         self.position_restraints = []
+        self.minimizations = []
+        self.simulations = []
+
 
     def minimize(self, minim_name):
 
@@ -39,6 +42,7 @@ class Equilibration:
         self.simulation.minimizeEnergy(reporter=reporter)
         save_rst7(self, f'{minim_name}.rst7')
 
+        self.minimizations.append(minim_name)
         with open(f'{minim_name}.dat', 'a+') as minimf:
             minimf.write('potential_energy\tconstraint_energy\tconstraint_strength\n')
             for i in range(len(reporter.potential_energies)):
@@ -85,6 +89,7 @@ class Equilibration:
             self.simulation.step(1)
 
         save_rst7(self, f'{heat_name}.rst7')
+        self.simulations.append(heat_name)
     
 
     def nvt(self, config, nvt_name):
@@ -96,6 +101,7 @@ class Equilibration:
         self.simulation.step(nsteps)
 
         save_rst7(self, f'{nvt_name}.rst7')
+        self.simulations.append(nvt_name)
     
 
     def npt_posres(self, config, npt_posres_name):
@@ -118,6 +124,7 @@ class Equilibration:
             self.simulation.step(1)
 
         save_rst7(self, f'{npt_posres_name}.rst7')
+        self.simulations.append(npt_posres_name)
 
 
     def npt(self, config, npt_name):
@@ -128,3 +135,4 @@ class Equilibration:
         self.simulation.step(nsteps)
 
         save_rst7(self, f'{npt_name}.rst7')
+        self.simulations.append(npt_name)
