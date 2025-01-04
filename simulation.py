@@ -75,12 +75,12 @@ class Equilibration:
         self.simulation.context.setPositions(prev_state.getPositions())
 
 
-    def heat(self, config, heat_name):
+    def heat(self, heat_name):
 
-        add_reporters(self, config, heat_name)
+        add_reporters(self, self.config, heat_name)
 
-        nsteps = int(np.round(config.heat_time / config.dt))
-        temps = np.linspace(config.start_temp.value_in_unit(kelvin), config.end_temp.value_in_unit(kelvin), nsteps)
+        nsteps = int(np.round(self.config.heat_time / self.config.dt))
+        temps = np.linspace(self.config.start_temp.value_in_unit(kelvin), self.config.end_temp.value_in_unit(kelvin), nsteps)
         
         # run
         for i in range(len(temps)):
@@ -92,10 +92,10 @@ class Equilibration:
         self.simulations.append(heat_name)
     
 
-    def nvt(self, config, nvt_name):
+    def nvt(self, nvt_name):
 
-        add_reporters(self, config, nvt_name)
-        nsteps = int(np.round(config.nvt_time / config.dt))
+        add_reporters(self, self.config, nvt_name)
+        nsteps = int(np.round(self.config.nvt_time / self.config.dt))
 
         # run
         self.simulation.step(nsteps)
@@ -104,10 +104,10 @@ class Equilibration:
         self.simulations.append(nvt_name)
     
 
-    def npt_posres(self, config, npt_posres_name):
+    def npt_posres(self, npt_posres_name):
 
-        add_reporters(self, config, npt_posres_name)
-        nsteps = int(np.round(config.npt_restr_time / config.dt))
+        add_reporters(self, self.config, npt_posres_name)
+        nsteps = int(np.round(self.config.npt_restr_time / self.config.dt))
 
         # get weight lists for each restraint
         for restraint in self.position_restraints:
@@ -127,10 +127,10 @@ class Equilibration:
         self.simulations.append(npt_posres_name)
 
 
-    def npt(self, config, npt_name):
+    def npt(self, npt_name):
 
-        add_reporters(self, config, npt_name)
-        nsteps = int(np.round(config.npt_time / config.dt))
+        add_reporters(self, self.config, npt_name)
+        nsteps = int(np.round(self.config.npt_time / self.config.dt))
 
         self.simulation.step(nsteps)
 
