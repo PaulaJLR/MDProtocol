@@ -11,8 +11,9 @@ class Analyse:
     def __init__(self, equilibration):
         self.equilibration = equilibration
 
-    def frame2time(self, frame_list, dec=2):
-        write_step = self.equilibration.config.report_interval
+    def frame2time(self, frame_list, write_step=None, dec=2):
+        if write_step is None:
+            write_step = self.equilibration.config.report_interval
         time_list = frame_list * ( 0.002/1000 * write_step )
         return(round(time_list, dec))
 
@@ -117,32 +118,23 @@ class Analyse:
             plt.savefig('lig_rmsd.png')
 
 
-    # def plot_restr_weights(self):
+    def plot_restr_weights(self):
 
-    #     weights = {}
-    #     for i in self.equilibration.position_restraints:
-    #         name = i.config.name
-    #         weights.append(name, i.weight_list)
-
-    #     filetypes = {
-    #         'ptn_restr':[file for file in files if "lig" not in str(file.stem)],
-    #         'lig_restr':[file for file in files if "lig" in str(file.stem)]
-    #     }
+        weights = []
+        for i in self.equilibration.position_restraints:
+            name = i.config.name
+            weights.append(name, i.weight_list)
         
-    #     for filetype in filetypes:
+        for name, weight_list in weights:
 
-    #         fig = plt.figure(tight_layout=True, figsize=[5.0,2.0], dpi=300)
-    #         colors = ['#dd842e','#519ca2']
-    #         color_ix = 0
-    #         for file in filetypes[filetype]:
-    #             data = pd.read_csv(file)
-    #             data['index'] = data.reset_index()['index']+1
-    #             data['time'] = frame2time(data['index'], dec=10, write_step=1)
-    #             plt.plot(data['time'], data['weight'], label=file.stem, color=colors[color_ix])
-    #             color_ix+=1
+            fig = plt.figure(tight_layout=True, figsize=[5.0,2.0], dpi=300)
+            data = pd.Series(weight_list)
+            index = list(data.index + 1)
+            time = self.frame2time(index, dec=10, write_step=1)
+            plt.plot(time, weight_list, label=name)
             
-    #         plt.xlabel('Time (ns)')
-    #         plt.ylabel('RWT (kcal/mol/$\mathrm{\AA}^2$)')
-    #         plt.legend()
+            plt.xlabel('Time (ns)')
+            plt.ylabel('RWT (kcal/mol/$\mathrm{\AA}^2$)')
+            plt.legend()
 
-    #         plt.savefig(filetype + '.png')
+            plt.savefig(name + '_weights.png')

@@ -1,6 +1,7 @@
 from config import SimulationConfig, RestraintConfig
 from simulation import Equilibration
 from restraints import PositionRestraints
+from analyse import Analyse
 
 from openmm.app import *
 from openmm import *
@@ -112,7 +113,7 @@ for restr in equilibration.position_restraints:
 
 # increase temp linearly
 equilibration.heat(simconf, 'nvt_heat')
-# keep nvt at target temperatue
+# keep nvt at target temperature
 equilibration.nvt(simconf, 'nvt')
 
 
@@ -134,3 +135,15 @@ for restr in equilibration.position_restraints:
     restr.remove()
 
 equilibration.npt(simconf, 'npt')
+
+
+"""
+analysis - rmsd data and plots
+"""
+
+analysis = Analyse(equilibration=equilibration)
+
+analysis.calc_rmsds()
+analysis.plot_minimizations()
+analysis.plot_rmsd()
+analysis.plot_restr_weights()
