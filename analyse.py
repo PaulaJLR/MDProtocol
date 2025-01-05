@@ -88,7 +88,7 @@ class Analyse:
 
         data = pd.read_csv('equil_rmsd.csv', index_col=0)
         unit = self.time_sums[0].unit
-        time_sums = [i.value_int_unit(unit) for i in self.time_sums]
+        time_sums = [i.value_in_unit(unit) for i in self.time_sums]
 
         def make_fig():
             plt.figure(tight_layout=True, figsize=[5.0,3.0], dpi=300)
@@ -123,13 +123,13 @@ class Analyse:
         weights = []
         for i in self.equilibration.position_restraints:
             name = i.config.name
-            weights.append(name, i.weight_list)
+            weights.append((name, i.weight_list))
         
         for name, weight_list in weights:
 
             fig = plt.figure(tight_layout=True, figsize=[5.0,2.0], dpi=300)
             data = pd.Series(weight_list)
-            index = list(data.index + 1)
+            index = pd.Series(data.index + 1)
             time = self.frame2time(index, dec=10, write_step=1)
             plt.plot(time, weight_list, label=name)
             
