@@ -39,7 +39,7 @@ def main():
         lig_resname=lig_resname,
         lig_anchor_atoms=lig_anchor_atoms
     )
-    config_posres_ligext = RestraintConfig( # ligand anchor
+    config_posres_ligext = RestraintConfig( # ligand extension
         name = 'posres_ligext',
         weight = 5.0,
         mask_func_name = 'posres_ligext_mask',
@@ -48,7 +48,7 @@ def main():
         start_time = 0,
         end_time = simconf.get_value('npt_restr_time') / 3
     )
-    config_posres_wat = RestraintConfig(
+    config_posres_wat = RestraintConfig( # structural waters
         name = 'posres_wat',
         weight = 1.0,
         mask_func_name = 'posres_water_mask',
@@ -140,9 +140,9 @@ def main():
 
     analysis = Analyse(equilibration=equilibration)
 
-    analysis.calc_rmsds()
+    analysis.calc_rmsds(lig_resname=lig_resname)
     analysis.plot_minimizations()
-    analysis.plot_rmsd()
+    analysis.plot_rmsd(lig_resname=lig_resname)
     analysis.plot_restr_weights()
 
 
