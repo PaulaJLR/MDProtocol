@@ -1,8 +1,8 @@
-from config import SimulationConfig, RestraintConfig
-from simulation import Equilibration
-from restraints import PositionRestraints
-from analyse import Analyse
-from tools import add_barostat
+from .config import SimulationConfig, RestraintConfig
+from .simulation import Equilibration
+from .restraints import PositionRestraints
+from .analyse import Analyse
+from .tools import add_barostat
 
 
 def main():

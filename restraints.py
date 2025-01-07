@@ -1,7 +1,7 @@
 # restraints.py
 from openmm import CustomExternalForce
 from openmm.unit import Quantity
-from simulation import Equilibration
+from .simulation import Equilibration
 import numpy as np
 
 class PositionRestraints:
