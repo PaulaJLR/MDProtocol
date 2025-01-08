@@ -2,10 +2,10 @@ import numpy as np
 from openmm.app import AmberPrmtopFile, AmberInpcrdFile, Simulation, PME, HBonds
 from openmm import NoseHooverIntegrator
 from openmm.unit import kelvin
-from config import SimulationConfig
-from reporters import MyMinimizationReporter, add_reporters
 import parmed as pmd
-from tools import save_rst7
+from .reporters import MyMinimizationReporter, add_reporters
+from .config import SimulationConfig
+from .tools import save_rst7
 
 class Equilibration:
 
