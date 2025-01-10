@@ -83,6 +83,41 @@ This script automatically performs RMSD analyses over all equilibration stages a
 
 ### Usage
 
+For an MD project, it is good practice to have note of the protocol and all the parameters used. Since this program encodes the whole protocol and MD parameters used in an equilibration run, I developed it not as a standalone application, but as a folder that resides in your simulation project. You can therefore clone the repo and edit the parameters for your use case in that specific project, thus making it future-proof: you will always be able to see exactly what the protocol and parameters used were, even if the code updates on GitHub or you transfer the project folder between computers.
+Example project folder:
+
+```
+md_simulation/
+├── equilibration
+│   ├── MDProtocol
+│   ├── rep_01
+│   ├── rep_02
+│   └── rep_03
+├── protein.pdb
+├── system.prmtop
+├── system.rst7
+└── tleap.in
+```
+
+Note that, because this was developed as a python package, the `MDProtocol` folder must be on the current working directory. But for replicates, since the configuration between them is the same, there is no need to copy the `MDProtocol` folder inside each one, simply create a symbolic link in each replicate folder to the `MDProtocol` one folder up. Thus:
+
+```
+├── equilibration
+│   ├── MDProtocol
+│   ├── rep_01
+│   │   └── MDProtocol -> ../MDProtocol
+```
+
+This program requires the python packages OpenMM, Parmed, and MDTraj, ideally in a clean virtual environment.
+
+Then, simply run with:
+
+```
+python -m MDProtocol
+```
+
+#### Configuration
+
 (Coming soon)
 
 ### Acknowledgements
