@@ -116,9 +116,237 @@ Then, simply run with:
 python -m MDProtocol
 ```
 
-#### Configuration
+### Configuration
 
-(Coming soon)
+(Work in progress)
+
+All the configuration options the large majority of users will ever need are at the file `__main__.py`. We will break down this file, step by step. 
+
+First the system and simulation options are configured. This block of code defines the simulation parameters:
+```python
+simconf = SimulationConfig(
+    # add here all options that should not be kept default
+    top_name='complex.prmtop',
+    crd_name='complex.rst7',
+)
+```
+
+The default options are as follows (and can also be found in `config.py`):
+```py
+top_name:         str   = 'system.prmtop'
+crd_name:         str   = 'system.rst7'
+
+dt:               float = 0.002
+tau_t:            float = 1.0
+cutoff:           float = 10.0
+report_interval:  int   = 5000
+
+heat_time:        float = 3.0   # total time for heating nvt
+nvt_time:         float = 2.0   # total time for nvt at target temp
+npt_restr_time:   float = 15.0  # total time for npt with gradually reduced restraints
+npt_time:         float = 5.0   # total time for npt with no restraints
+
+start_temp:       float = 100.0
+end_temp:         float = 300.0
+
+pressure:         float = 1.0
+```
+
+Thus, if the user wishes to change any of these options, they just need to alter `simconf`, for example:
+```python
+simconf = SimulationConfig(
+    # add here all options that should not be kept default
+    top_name='complex.prmtop',
+    crd_name='complex.rst7',
+    report_interval=2500
+)
+```
+
+Next, ligand information, structural waters and position restraints are defined. If you have a ligand in your system, provide its residue name here:
+```py
+lig_resname = 'LIG' # IMPORTANT: if no ligand, use lig_resname = None
+```
+If not, keep:
+```py
+lig_resname = None # IMPORTANT: if no ligand, use lig_resname = None
+```
+Then, provide the atom names of the anchor portion of the ligand (the program will automatically identify the extension portion):
+```py
+lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
+```
+If you have structural waters, provide their residue numbers as strings (within quotation marks):
+```py
+structural_waters = ['163', '164', '165', '166'] # residue numbers
+```
+If you don't have any, comment this line out or delete it.
+
+Finally, we can configure the position restraints. Each posres block defines these configurations:
+- `name`: the posres' name. Default "posres_bb"
+- `weight`: its weight in kilocalories/mole/angstroms**2, default 10.0.
+- `minim_weight`: its weight in the minimization stage (this way one weight can be used for minimizing and another for equilibrating). Default 10.0.
+- `start_time`: the equilibration time point where its weight starts to be decreased (ns). Default 5.0.
+- `end_time`: the equilibration time point where its weight reaches 0. Default 15.0.
+- `lig_resname`: the residue name of the ligand. Default None.
+- `lig_anchor_atoms`: the ligand anchor atoms. Default None.
+- `structural_waters`: the list of structural waters. Default None.
+- `mask_func_name`: the name of the mask function that this specific position restraint will use. It can be: "posres_bb_mask", "posres_sc_mask", "posres_liganc_mask", "posres_ligext_mask", or "posres_water_mask". Default "posres_bb_mask".
+- `decay_func`: use linear decay or exponential decay. Uses exponential by default.
+- `decay_rate`: the rate of decay. Default 5.0.
+
+The parameters that are to be kept at default value do not need to be explicitly defined.
+So let's start defining the config for the backbone position restraints. We will put it in the variable `config_posres_bb`. The restraint's name will be `"posres_bb"`. And since this is the backbone postres, the atom mask it will use is the `"posres_bb_mask"`. We will keep all the other values as default and therefore omit them. Thus:
+
+```py
+config_posres_bb = RestraintConfig( # protein backbone
+    name      = 'posres_bb',
+    mask_func_name = 'posres_bb_mask'
+)
+```
+
+Next, we configure the posres for the protein sidechain. It will be called `"posres_sc"`:
+
+```py
+config_posres_sc = RestraintConfig( # protein sidechain
+    name       = 'posres_sc',
+    weight     = 5.0, # change the weight value from 10.0 to 5.0
+    mask_func_name  = 'posres_sc_mask', # since this is posres for sidechain, the mask used will be the one for sidechain
+    start_time = 0, # the sidechain will start being release at the start of npt
+    end_time   = simconf.get_value('npt_restr_time') / 3 # it will reach 0 at total npt time divided by 3. Similarly, you could just say `end_time = 5.0` if your npt time is 15.0
+)
+```
+
+For configuring the posres on the ligand anchor, according to the protocol the options should follow the ones set for the protein backbone, but we should give it the information we set previously in the variables `lig_resname` and `lig_anchor_atoms`, so:
+
+```py
+config_posres_liganch = RestraintConfig( # ligand anchor
+    name        = 'posres_liganc',
+    mask_func_name   = 'posres_liganc_mask',
+    lig_resname=lig_resname,
+    lig_anchor_atoms=lig_anchor_atoms
+)
+```
+
+Similarly the other restraints are configured:
+
+```py
+config_posres_ligext = RestraintConfig( # ligand extension
+    name = 'posres_ligext',
+    weight = 5.0, # same weight as the protein sidechain
+    mask_func_name = 'posres_ligext_mask', # use the corresponding atom mask
+    lig_resname=lig_resname, # provide ligand information set previously
+    lig_anchor_atoms=lig_anchor_atoms, # provide ligand information set previously
+    start_time = 0, # like the protein sidechain, starts decreasing at the start of the npt simulation 
+    end_time = simconf.get_value('npt_restr_time') / 3 # and reaches 0 at a third of the simulation
+)
+config_posres_wat = RestraintConfig( # structural waters
+    name = 'posres_wat',
+    weight = 1.0, 
+    mask_func_name = 'posres_water_mask',
+    structural_waters = structural_waters, # give the structural waters' resnumbers defined previously
+    start_time = 0,
+    end_time = simconf.get_value('npt_restr_time') / 3
+)
+```
+
+You can comment out or delete any of these blocks if you will not use the corresponding posres.
+The next step only initialises the position restraint objects within the program using the configurations we just defined, but they do not get applied to the simualation itself yet:
+
+```py
+# start system
+equilibration = Equilibration(simconf)
+
+# initialize position restraints (this does not apply them yet)
+posres_bb = PositionRestraints(equilibration, config_posres_bb)
+posres_sc = PositionRestraints(equilibration, config_posres_sc)
+posres_liganc = PositionRestraints(equilibration, config_posres_liganch)
+posres_ligext = PositionRestraints(equilibration, config_posres_ligext)
+posres_waters = PositionRestraints(equilibration, config_posres_wat)
+# ^ comment out or delete any of the lines corresponding to posres that will not be used
+```
+
+Now we can apply the position restraints that will be used for minimization (delete any that will not be used in your protocol):
+```py
+# apply all restraints except struct waters
+posres_bb.apply(minim=True)
+posres_sc.apply(minim=True)
+posres_liganc.apply(minim=True)
+posres_ligext.apply(minim=True)
+```
+Note that we are applying the minimization weights, thus we used `minim=True`
+Then we can minimize the system:
+```py
+equilibration.minimize('minim1')
+```
+
+Next, we will remove the ligand extension and protein sidechain posres so that the system can minimize again only keeping backbone and anchor restrained:
+
+```py
+# remove posres sc and ligext:
+posres_sc.remove()
+posres_ligext.remove()
+# minimize 2nd round
+equilibration.minimize('minim2')
+```
+
+And then we remove the remaining restraints to perform a free minimization:
+
+```py
+# remove posres bb and liganc:
+posres_bb.remove()
+posres_liganc.remove()
+# minimize 3rd round:
+equilibration.minimize('minim3')
+```
+
+Next, the nvt simulation can be started. We apply SHAKE and then reapply the position restraints, now with the simulation weights (not the minimization weights):
+
+```py
+# start SHAKE
+equilibration.apply_hbond_constraints()
+
+# apply all position restraints for simulation
+for restr in equilibration.position_restraints:
+    restr.apply()
+```
+
+Next we run nvt while increase the temperature, followed by nvt at target temperature:
+```py
+# increase temp linearly
+equilibration.heat('nvt_heat')
+# keep nvt at target temperature
+equilibration.nvt('nvt')
+```
+
+We add the barostat and then run the npt stage where all the restraints are gradually reduced to 0 obeying the settings and timings we defined earlier:
+
+```py
+add_barostat(simconf, equilibration)
+equilibration.npt_posres('npt_posres')
+```
+
+Then we run a quick npt without any position restraint applied:
+
+```py
+# even though restraint weights got to 0, I remove them
+# to avoid unnecessery calculations:
+for restr in equilibration.position_restraints:
+    restr.remove()
+
+equilibration.npt('npt')
+```
+
+Finally, the program will generate some nice plots automatically:
+```py
+analysis = Analyse(equilibration=equilibration)
+
+analysis.calc_rmsds(lig_resname=lig_resname)
+analysis.plot_minimizations()
+analysis.plot_rmsd(lig_resname=lig_resname)
+analysis.plot_restr_weights()
+```
+
+Delete any line corresponding to an analysis you do not want done.
+
 
 ### Acknowledgements
 
