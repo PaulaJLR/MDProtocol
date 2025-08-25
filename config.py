@@ -34,8 +34,8 @@ class SimulationConfig:
         self.nvt_time = self.nvt_time * nanoseconds
         self.npt_restr_time = self.npt_restr_time * nanoseconds
         self.npt_time = self.npt_time * nanoseconds
-        self.start_temp = self.start_temp * kelvin
-        self.end_temp = self.end_temp * kelvin
+        self.start_temp = self.start_temp * kelvin # has to be kelvin
+        self.end_temp = self.end_temp * kelvin     # has to be kelvin
         self.pressure = self.pressure * bar
 
         # get total steps
