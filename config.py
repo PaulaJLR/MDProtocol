@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from openmm.unit import *
 from typing import Callable
 import math
@@ -61,7 +61,7 @@ class RestraintConfig:
     name:             str      = 'posres_bb'
     start_time:       float    = 5.0
     end_time:         float    = 15.0
-    lig_resname:      str      = None
+    lig_resname:      list     = field(default_factory=list)
     lig_anchor_atoms: list     = None
     structural_waters:list     = None
     mask_func_name:   str      = None
@@ -92,26 +92,26 @@ class RestraintConfig:
 
     def posres_bb_mask(self, atom):
         return(
-            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
+            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', *self.lig_resname] and
             atom.name in ['C','CA','N','O']
         )
 
     def posres_sc_mask(self, atom):
         return(
-            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', self.lig_resname] and
+            atom.residue.name not in ['HOH', 'WAT', 'Na+', 'Cl-', *self.lig_resname] and
             atom.element.symbol != "H" and
             atom.name not in ['C','CA','N','O']
         )
 
     def posres_liganc_mask(self, atom):
         return(
-            atom.residue.name == self.lig_resname and
+            atom.residue.name in self.lig_resname and
             atom.name in self.lig_anchor_atoms
         )
     
     def posres_ligext_mask(self, atom):
         return(
-            atom.residue.name == self.lig_resname and
+            atom.residue.name in self.lig_resname and
             atom.element.symbol != "H" and
             atom.name not in self.lig_anchor_atoms
         )

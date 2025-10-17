@@ -17,19 +17,21 @@ def main():
         crd_name='complex.rst7',
     )
 
-    lig_resname = 'LIG' # IMPORTANT: if no ligand, use lig_resname = None
+    lig_resname = ['LIG']  # IMPORTANT: if no ligand, use lig_resname = []
     lig_anchor_atoms = ['C1', 'C2', 'C3', 'C4', 'C5', 'O3', 'C9', 'C12', 'C13', 'C14', 'C15', 'O10', 'C20', 'C21', 'C22', 'C23', 'C24', 'O16', 'C28', 'C31', 'C32', 'C33', 'C34', 'O22']
     structural_waters = ['163', '164', '165', '166'] # residue numbers
 
     # configure position restraints
     config_posres_bb = RestraintConfig( # protein backbone
         name      = 'posres_bb',
-        mask_func_name = 'posres_bb_mask'
+        mask_func_name = 'posres_bb_mask',
+        lig_resname=lig_resname,
     )
     config_posres_sc = RestraintConfig( # protein sidechain
         name       = 'posres_sc',
         weight     = 5.0,
         mask_func_name  = 'posres_sc_mask',
+        lig_resname=lig_resname,
         start_time = 0,
         end_time   = simconf.get_value('npt_restr_time') / 3
     )

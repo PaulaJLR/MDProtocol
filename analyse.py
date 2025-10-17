@@ -38,7 +38,7 @@ class Analyse:
             plt.savefig(i+'.png')
     
 
-    def calc_rmsds(self, lig_resname=None):
+    def calc_rmsds(self, lig_resname=[]):
 
         top = self.equilibration.config.top_name
         last_minim_name = self.equilibration.minimizations[-1]
@@ -57,8 +57,13 @@ class Analyse:
             'ptn_rmsd' : md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=ptn_ix), units_in='nanometers', units_out='angstroms'),
             'time'     : self.frame2time(pd.Series(range(1, traj.n_frames+1)))
         }
-        if lig_resname is not None:
-            lig_ix = traj.topology.select(f"resname {lig_resname}")
+
+        if len(lig_resname) > 0:
+            if len(lig_resname) == 1:
+                selection = f"resname {lig_resname[0]}"
+            elif len(lig_resname) > 1:
+                selection = ' or '.join(f"resname {name}" for name in lig_resname)
+            lig_ix = traj.topology.select(selection)
             data_dict['lig_rmsd'] = md.utils.in_units_of(md.rmsd(target=traj_aln, reference=ref, atom_indices=lig_ix), units_in='nanometers', units_out='angstroms')
 
         trajectories = []
@@ -84,7 +89,7 @@ class Analyse:
         return(data)
 
 
-    def plot_rmsd(self, lig_resname=None):
+    def plot_rmsd(self, lig_resname=[]):
 
         data = pd.read_csv('equil_rmsd.csv', index_col=0)
         unit = self.time_sums[0].unit
@@ -109,7 +114,7 @@ class Analyse:
         make_deco()
         plt.savefig('rmsd.png')
 
-        if lig_resname is not None:
+        if len(lig_resname) > 0:
 
             make_fig()
             make_hlines()
